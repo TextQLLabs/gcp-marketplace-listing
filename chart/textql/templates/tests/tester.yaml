@@ -54,7 +54,6 @@ spec:
           {{- if .Values.minio.enabled }}
           check "minio live" "http://{{ .Release.Name }}-minio:9000/minio/health/live"
           {{- end }}
-          {{/* tableau-engine speaks Arrow Flight (no HTTP); its readiness is
-               covered by the deployer waiting on the Deployment's TCP probe */}}
+          {{/* tableau-engine has no HTTP endpoint; its Deployment probe covers it */}}
           echo "All functionality tests passed."
 {{- end }}

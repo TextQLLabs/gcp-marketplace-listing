@@ -64,13 +64,13 @@ x-google-marketplace:
             resources: ['pods']
             verbs: ['get', 'list']
   images:
+    '':
+      properties:
+        images.computeEngine:
+          type: FULL
     tql-web:
       properties:
         images.web:
-          type: FULL
-    tql-compute-engine:
-      properties:
-        images.computeEngine:
           type: FULL
     tql-py-worker:
       properties:
@@ -182,12 +182,12 @@ properties:
           base64EncodedCertificate: global.sandboxProxy.caCert
   minio.enabled:
     type: boolean
-    title: Deploy evaluation object storage (MinIO)
+    title: In-cluster object storage (MinIO)
     description: >-
-      Runs a single-node in-cluster S3-compatible store so file features work
-      out of the box. For evaluation only; use a GCS bucket (global.gcs.*)
-      for production.
-    default: false
+      Runs a single-node S3-compatible store in the cluster so file features
+      work out of the box. Heavy production use should switch to a GCS
+      bucket (global.gcs.*).
+    default: true
   secrets.gcsHmacAccessKey:
     type: string
     x-google-marketplace:

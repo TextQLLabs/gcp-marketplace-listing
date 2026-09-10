@@ -1,6 +1,5 @@
 {{- if and .Values.computeEngine.enabled .Values.sandbox.rwoPvc.enabled (not .Values.sandbox.filestore.enabled) }}
-{{/* Same fixed name as the Filestore variant: sandbox worker pods reference
-     this claim by exactly this name (compiled into the compute image). */}}
+{{/* Fixed name: worker pods reference this claim as "sandbox-files-pvc". */}}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:

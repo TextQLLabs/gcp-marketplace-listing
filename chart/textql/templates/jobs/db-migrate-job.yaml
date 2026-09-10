@@ -18,7 +18,7 @@ spec:
       restartPolicy: OnFailure
       containers:
         - name: migrate
-          image: "{{ include "tql.image" (dict "ctx" . "key" "computeEngine" "name" "tql-compute-engine") }}"
+          image: "{{ include "tql.image" (dict "ctx" . "key" "computeEngine" "name" "") }}"
           command: ["app", "migrate", "up"]
           resources:
             requests:

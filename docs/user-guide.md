@@ -16,9 +16,9 @@ cluster:
 - **postgres** — an in-cluster PostgreSQL database (default), or bring your
   own (e.g. Cloud SQL for PostgreSQL over private IP).
 - **valkey** — in-cluster cache/queue.
-- **minio** (optional, `minio.enabled`) — a single-node in-cluster
-  S3-compatible object store so file features work out of the box. For
-  evaluation; production should use a GCS bucket (`global.gcs.bucket` plus
+- **minio** (default) — a single-node in-cluster S3-compatible object
+  store so file features work out of the box. Heavy production use can
+  switch to a GCS bucket (`minio.enabled=false`, `global.gcs.bucket` plus
   an HMAC key in `secrets.gcsHmac*`).
 
 TextQL is a **commercial, BYOL (bring your own license)** product. The app
@@ -80,7 +80,54 @@ app instance name, fill in the optional parameters (public URL, hostname,
 OIDC settings, TextQL license credentials), and deploy. Passwords and
 internal keys are generated automatically.
 
-### From the command line
+### Quick evaluation install (command line)
+
+The shortest path to a running deployment — no sign-in, no TextQL
+credentials, MinIO for storage, and a single-node volume so a sandbox
+worker can run:
+
+```sh
+NAME=textql
+NAMESPACE=textql
+kubectl create namespace "$NAMESPACE"
+
+# Ed25519 session-JWT key pair (raw bytes, base64). macOS LibreSSL cannot
+# generate ed25519; this uses python instead.
+read -r JWT_PRIV JWT_PUB <<< "$(python3 -c '
+import base64
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives import serialization as s
+k = Ed25519PrivateKey.generate()
+seed = k.private_bytes(s.Encoding.Raw, s.PrivateFormat.Raw, s.NoEncryption())
+pub = k.public_key().public_bytes(s.Encoding.Raw, s.PublicFormat.Raw)
+print(base64.b64encode(seed + pub).decode(), base64.b64encode(pub).decode())')"
+
+# Sandbox proxy CA (required for compute-engine to launch workers)
+openssl req -x509 -newkey rsa:2048 -nodes -keyout ca.key -out ca.crt \
+  -days 3650 -subj "/CN=TextQL Sandbox Proxy CA" 2>/dev/null
+
+helm install "$NAME" ./chart/textql -n "$NAMESPACE" \
+  --set postgres.auth.password="$(openssl rand -hex 16)" \
+  --set secrets.valkeyPassword="$(openssl rand -hex 16)" \
+  --set secrets.internalKey="$(openssl rand -hex 32)" \
+  --set secrets.sandboxAuthKey="$(openssl rand -hex 32)" \
+  --set secrets.connectorEncryptionKey="$(openssl rand -hex 16)" \
+  --set secrets.tableauInternalSecret="$(openssl rand -hex 16)" \
+  --set secrets.gcsHmacAccessKey="$(openssl rand -hex 10)" \
+  --set secrets.gcsHmacSecretKey="$(openssl rand -hex 20)" \
+  --set secrets.authJwtPrivateKey="$JWT_PRIV" \
+  --set secrets.authJwtPublicKey="$JWT_PUB" \
+  --set global.sandboxProxy.caCert="$(base64 < ca.crt | tr -d '\n')" \
+  --set secrets.sandboxProxyCaKey="$(base64 < ca.key | tr -d '\n')" \
+  --set sandbox.rwoPvc.enabled=true
+
+make health NAMESPACE="$NAMESPACE"    # or watch it in k9s
+```
+
+Sign-in and AI features stay disabled until OIDC and the TextQL deployment
+credentials are configured (sections below).
+
+### Full install (command line)
 
 Clone this repository, then:
 
@@ -126,7 +173,7 @@ Key parameters (all settable in the UI or via `--set`):
 | `global.auth.oidc.*` / `secrets.oidcClientSecret` | OIDC single sign-on | empty |
 | `secrets.authJwtPrivateKey` / `secrets.authJwtPublicKey` | Session JWT EC P-256 key pair | empty |
 | `gateway.enabled` | GKE Gateway (external load balancer) | `false` |
-| `minio.enabled` | Evaluation in-cluster object storage | `false` |
+| `minio.enabled` | In-cluster object storage | `true` |
 | `computeEngine.poolSize` / `computeEngine.minWorkersAvailable.*` | Sandbox worker pool sizing | `256` / `10`,`2` |
 | `sandbox.filestore.enabled` | Filestore-backed shared sandbox storage | `false` |
 | `global.secretsMode` | `values` or `externalSecrets` | `values` |
@@ -139,10 +186,10 @@ For production, pin every image to a digest. Resolve the digest of each
 image at your release tag and pass it as a full-reference override:
 
 ```sh
-IMG=us-docker.pkg.dev/textql-public/textql/tql-web:1.3.20
+IMG=us-docker.pkg.dev/textql-public/textql/textql-byoc-byol/tql-web:1.3.20
 DIGEST=$(docker manifest inspect -v "$IMG" | jq -r '.Descriptor.digest' | head -1)
 helm upgrade "$NAME" ./chart/textql -n "$NAMESPACE" --reuse-values \
-  --set images.web="us-docker.pkg.dev/textql-public/textql/tql-web@${DIGEST}"
+  --set images.web="us-docker.pkg.dev/textql-public/textql/textql-byoc-byol/tql-web@${DIGEST}"
 ```
 
 Repeat for `images.computeEngine`, `images.pyWorker`,
@@ -233,11 +280,10 @@ Two options:
   (`gcloud storage hmac create <service-account-email>`), then set
   `global.gcs.bucket`, `secrets.gcsHmacAccessKey`, and
   `secrets.gcsHmacSecretKey`.
-- **In-cluster MinIO (evaluation):** `--set minio.enabled=true`. The
-  `secrets.gcsHmac*` values double as the MinIO root credentials and the
-  bucket (`minio.bucket`, default `textql`) is created automatically. Data
-  lives on a single PersistentVolumeClaim; do not rely on it for production
-  durability.
+- **In-cluster MinIO (default):** the `secrets.gcsHmac*` values double as
+  the MinIO root credentials and the bucket (`minio.bucket`, default
+  `textql`) is created automatically. Data lives on a single
+  PersistentVolumeClaim.
 
 ### Sandbox workers and outbound email
 

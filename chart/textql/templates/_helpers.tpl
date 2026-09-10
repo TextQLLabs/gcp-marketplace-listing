@@ -3,15 +3,13 @@ app.kubernetes.io/name: {{ .Release.Name | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
 {{- end -}}
 
-{{/* Selector labels: release-scoped so several instances can share a
-     namespace, per Marketplace packaging requirements. */}}
+{{/* Release-scoped selector labels. */}}
 {{- define "tql.selectorLabels" -}}
 app: {{ .app }}
 app.kubernetes.io/name: {{ .ctx.Release.Name | quote }}
 {{- end -}}
 
-{{/* Marketplace apps must run on x86 nodes; Istio sidecar injection is
-     unsupported and explicitly disabled. */}}
+{{/* Marketplace apps must run on x86; Istio injection is unsupported. */}}
 {{- define "tql.podRuntime" -}}
 nodeSelector:
   kubernetes.io/arch: amd64
@@ -21,10 +19,8 @@ nodeSelector:
 sidecar.istio.io/inject: "false"
 {{- end -}}
 
-{{/* Single-tenant OIDC mode is only safe once OIDC is configured:
-     compute-engine refuses to boot with SINGLE_OIDC_TENANT=true and no
-     issuer/client id/client secret. Until then the app runs with OIDC
-     single-tenant off (nobody can sign in, but every pod is healthy). */}}
+{{/* SINGLE_OIDC_TENANT=true without a full OIDC config is a fatal boot
+     error in compute-engine, so only turn it on once OIDC is set up. */}}
 {{- define "tql.singleOidcTenant" -}}
 {{- if and .Values.global.auth.oidc.issuerUrl .Values.global.auth.oidc.clientId -}}
 true
@@ -33,8 +29,8 @@ false
 {{- end -}}
 {{- end -}}
 
-{{/* Hostnames list; global.hostname (scalar, settable from the Marketplace
-     UI) wins over global.hostnames when set. */}}
+{{/* global.hostname (a scalar, so the Marketplace UI can set it) wins
+     over the hostnames list. */}}
 {{- define "tql.hostnames" -}}
 {{- if .Values.global.hostname -}}
 {{ list .Values.global.hostname | toYaml }}
@@ -43,7 +39,7 @@ false
 {{- end -}}
 {{- end -}}
 
-{{/* --- Database wiring: in-cluster postgres or external --- */}}
+{{/* Database wiring: in-cluster postgres or external. */}}
 
 {{- define "tql.db.host" -}}
 {{- if .Values.postgres.enabled -}}
@@ -85,7 +81,7 @@ false
 {{- end -}}
 {{- end -}}
 
-{{/* In-cluster postgres has no TLS; external databases must use it. */}}
+{{/* In-cluster postgres runs without TLS; external databases require it. */}}
 {{- define "tql.db.url" -}}
 {{- $sslmode := ternary "disable" "require" .Values.postgres.enabled -}}
 postgresql://{{ include "tql.db.username" . }}:{{ include "tql.db.password" . | urlquery }}@{{ include "tql.db.host" . }}:{{ include "tql.db.port" . }}/{{ include "tql.db.name" . }}?sslmode={{ $sslmode }}

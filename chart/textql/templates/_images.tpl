@@ -1,12 +1,14 @@
-{{/* Image reference for a component. Every reference is substitutable, as
-     Cloud Marketplace requires: the full-reference override in .Values.images
-     (keyed by .key) wins; otherwise <global.registry>/<.name>:<global.imageTag>.
-     All images of a release share one version tag. */}}
+{{/* Image reference for a component: the per-image override in
+     .Values.images wins; otherwise <registry>/<name>:<imageTag>. An empty
+     .name means the main app image, which lives at <registry> itself per
+     the Marketplace repo layout. */}}
 {{- define "tql.image" -}}
 {{- $override := index .ctx.Values.images .key | default "" -}}
 {{- if $override -}}
 {{- $override -}}
-{{- else -}}
+{{- else if .name -}}
 {{- printf "%s/%s:%s" .ctx.Values.global.registry .name .ctx.Values.global.imageTag -}}
+{{- else -}}
+{{- printf "%s:%s" .ctx.Values.global.registry .ctx.Values.global.imageTag -}}
 {{- end -}}
 {{- end -}}

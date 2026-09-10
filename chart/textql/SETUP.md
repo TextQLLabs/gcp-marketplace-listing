@@ -6,11 +6,11 @@ proxy using your deployment credentials, and scheduling policy is baked in.
 It is the chart behind the Google Cloud Marketplace listing and renders
 entirely client-side (works with `helm template`).
 
-Defaults are Marketplace-friendly: an in-cluster PostgreSQL, secrets from
-values (`global.secretsMode=values`), no load balancer, ephemeral sandbox
-storage. Production installs typically enable the Gateway, Filestore sandbox
-storage, and either external-secrets mode or values-provided secrets managed
-by your own tooling.
+Defaults are self-contained: in-cluster PostgreSQL and MinIO object
+storage, secrets from values (`global.secretsMode=values`), no load
+balancer, ephemeral sandbox storage. Production installs typically enable
+the Gateway and pick their storage (Filestore for sandboxes, optionally a
+GCS bucket instead of MinIO).
 
 ## 1. What you need first
 
@@ -21,10 +21,10 @@ by your own tooling.
   docs/user-guide.md).
 - Optional: a **Cloud SQL for PostgreSQL** instance if you prefer an
   external database (`postgres.enabled=false`, `global.db.*`).
-- Object storage: a **GCS bucket** + HMAC key (`global.gcs.bucket`,
-  `secrets.gcsHmac*`: `gcloud storage hmac create <service-account-email>`),
-  or `minio.enabled=true` for an evaluation-grade in-cluster store (the
-  `secrets.gcsHmac*` values then double as the MinIO root credentials).
+- Object storage: in-cluster MinIO by default (the `secrets.gcsHmac*`
+  values double as the root credentials). For a GCS bucket instead:
+  `minio.enabled=false`, `global.gcs.bucket`, and an HMAC key
+  (`gcloud storage hmac create <service-account-email>`).
 - An **OIDC application** at your identity provider (redirect URI:
   `<public URL>/oidc/callback`). Sign-in only works through it.
 - Your **TextQL deployment id and private key** (issued with your license).

@@ -1,8 +1,6 @@
 {{- if .Values.computeEngine.enabled }}
-{{/* The Deployment name is fixed: compute-engine looks up its own
-     Deployment by exactly this name at startup for the owner reference it
-     puts on spawned sandbox worker pods (compiled into the image), so it
-     cannot carry the release prefix. One instance per namespace. */}}
+{{/* Fixed name: compute-engine looks up its own Deployment as
+     "compute-engine" for the owner reference on spawned worker pods. */}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -12,7 +10,7 @@ metadata:
 spec:
   {{- $smtp := .Values.compute.smtp }}
   {{- $oidc := .Values.global.auth.oidc }}
-  {{- $computeImage := include "tql.image" (dict "ctx" . "key" "computeEngine" "name" "tql-compute-engine") }}
+  {{- $computeImage := include "tql.image" (dict "ctx" . "key" "computeEngine" "name" "") }}
   {{- $workerImage := include "tql.image" (dict "ctx" . "key" "pyWorker" "name" "tql-py-worker") }}
   {{- $dashboardWorkerImage := include "tql.image" (dict "ctx" . "key" "pyWorkerDashboard" "name" "tql-py-worker-dashboard") }}
   replicas: {{ .Values.computeEngine.replicas }}

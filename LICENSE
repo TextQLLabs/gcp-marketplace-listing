@@ -1,65 +1,195 @@
-TEXTQL COMMERCIAL LICENSE
+TEXTQL LICENSE AGREEMENT
+Bring Your Own License (BYOL) — Google Cloud Marketplace
 
-Copyright (c) 2026 TextQL, Inc. All rights reserved.
+Last updated: September 2026
 
-This repository contains proprietary software and configuration of
-TextQL, Inc. ("TextQL"), including Helm charts, Kubernetes manifests,
-container build files, schemas, and documentation (collectively, the
-"Materials"). The Materials are licensed, not sold.
+IMPORTANT — READ THIS AGREEMENT CAREFULLY BEFORE INSTALLING, DOWNLOADING,
+OR USING THE SOFTWARE. TEXTQL WILL LICENSE THE SOFTWARE TO YOU (AS DEFINED
+BELOW) ONLY IF YOU ACCEPT THE TERMS AND CONDITIONS OF THIS AGREEMENT. BY
+INSTALLING, DOWNLOADING, DEPLOYING, OR USING THE SOFTWARE, YOU (1) AGREE TO
+THE TERMS AND CONDITIONS OF THIS AGREEMENT, AND (2) REPRESENT AND WARRANT
+THAT YOU HAVE THE AUTHORITY TO ENTER INTO THIS AGREEMENT ON BEHALF OF
+YOURSELF, YOUR EMPLOYER (WHEN ACTING ON BEHALF OF YOUR EMPLOYER), AND/OR A
+TEXTQL-AUTHORIZED LICENSEE. IF YOU DO NOT AGREE TO THE TERMS AND CONDITIONS
+OF THIS AGREEMENT, DO NOT INSTALL, DOWNLOAD, OR USE THE SOFTWARE.
 
-1. LICENSE GRANT. Subject to a valid, written commercial agreement with
-   TextQL (including a bring-your-own-license (BYOL) subscription obtained
-   in connection with Google Cloud Marketplace), TextQL grants you a
-   limited, non-exclusive, non-transferable, non-sublicensable, revocable
-   license to use the Materials solely to deploy, configure, operate, and
-   maintain the TextQL software for your internal business purposes, on
-   infrastructure under your control, for the duration and scope of that
-   agreement.
+This License Agreement ("Agreement") is a legal contract between you, or as
+applicable your employer or the TextQL-authorized licensee on whose behalf
+you act ("You," "Your"), and TextQL, Inc. ("TextQL") for the Software.
 
-2. RESTRICTIONS. Except as expressly permitted in Section 1 or by prior
-   written consent of TextQL, you may not, and may not permit any third
-   party to:
-   (a) use the Materials or the TextQL software without a valid commercial
-       agreement with TextQL;
-   (b) copy, distribute, publish, sublicense, sell, rent, lease, or
-       otherwise make the Materials available to any third party;
-   (c) modify or create derivative works of the Materials, other than
-       configuration changes reasonably required to deploy the TextQL
-       software in your own environment;
-   (d) reverse engineer, decompile, or disassemble any TextQL container
-       image or binary, except to the extent such restriction is
-       prohibited by applicable law;
-   (e) remove or alter any proprietary notices in the Materials; or
-   (f) use the Materials to build, train, or improve a competing product
-       or service.
+"Software" means the TextQL software made available through this repository
+and the associated Google Cloud Marketplace listing, including the Helm
+chart, Kubernetes manifests, deployment container, schemas, container
+images referenced by them (in object code form only), and the associated
+documentation. "Software" also includes any error corrections, bug fixes,
+updates, upgrades, or new versions or releases (collectively,
+"Enhancements") that TextQL may elect, in its sole discretion, to provide
+to You. TextQL is under no obligation to provide Enhancements under this
+Agreement.
 
-3. OWNERSHIP. TextQL and its licensors retain all right, title, and
-   interest in and to the Materials and the TextQL software, including all
-   intellectual property rights. No rights are granted by implication,
-   estoppel, or otherwise.
+If You have purchased a subscription or license to the TextQL platform
+under a separately executed agreement with TextQL or one of its affiliates
+(a "Master Agreement"), the terms of that Master Agreement prevail over
+this Agreement to the extent of any conflict. This offering is Bring Your
+Own License (BYOL): a valid commercial subscription from TextQL, including
+the deployment credentials TextQL issues with it, is required for the AI
+and analytics functionality of the Software.
 
-4. THIRD-PARTY COMPONENTS. The TextQL software references third-party
-   open-source components (for example PostgreSQL, Valkey, Ory Oathkeeper,
-   and kubectl images). Those components are licensed under their own
-   terms, which are not modified or superseded by this license.
+1. TERM. This Agreement commences on the earliest date of Your first
+download, copying, installation, or use of the Software (the "Effective
+Date"). Unless terminated earlier as provided herein, this Agreement,
+including Your license to the Software, expires or terminates (i) on the
+date Your TextQL subscription or Master Agreement expires or terminates,
+whichever occurs first, or (ii) in accordance with the terms of this
+Agreement.
 
-5. TERMINATION. This license terminates automatically upon breach of its
-   terms or upon expiry or termination of your commercial agreement with
-   TextQL. Upon termination you must stop using the Materials and destroy
-   all copies in your possession, except as required by law.
+2. LICENSE.
 
-6. NO WARRANTY. THE MATERIALS ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY
-   KIND, EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION WARRANTIES OF
-   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND
-   NON-INFRINGEMENT. YOUR COMMERCIAL AGREEMENT WITH TEXTQL MAY CONTAIN
-   SEPARATE WARRANTY TERMS FOR THE TEXTQL SOFTWARE.
+(a) Subject to Your compliance with all terms and conditions of this
+Agreement (and, where applicable, the Master Agreement), TextQL grants You
+a nonexclusive, nontransferable, non-sublicensable license to install and
+use the Software, in object code form, on Kubernetes clusters and
+infrastructure under Your control, for Your internal business purposes,
+solely to operate the TextQL platform under Your valid TextQL subscription.
 
-7. LIMITATION OF LIABILITY. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO
-   EVENT WILL TEXTQL BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL,
-   CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS, REVENUE,
-   DATA, OR USE, ARISING OUT OF OR RELATED TO THE MATERIALS, EVEN IF
-   ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+(b) If You do not yet hold a TextQL subscription, You may install and use
+the Software solely to internally evaluate the TextQL platform for up to
+ninety (90) days from the Effective Date, after which You must either
+obtain a subscription from TextQL or cease use and remove the Software.
 
-8. CONTACT. For licensing inquiries, contact support@textql.com.
+(c) You may make reasonable archival backup copies of the Software, and You
+may modify configuration (values, parameters, resource sizing, and similar
+deployment settings) as reasonably required to deploy the Software in Your
+environment. Configuration changes are not "modifications" of the Software
+for the purposes of Section 2(e).
 
-Any use of the Materials not expressly authorized above is prohibited.
+(d) "Third Party Software" means computer programs or modules (including
+their documentation) that bear the logo, copyright, and/or trademark of a
+third party, including open source software (for example PostgreSQL,
+Valkey, Ory Oathkeeper, MinIO, and Kubernetes client tooling referenced by
+the Software). Third Party Software does not constitute Software and is
+licensed to You subject to the applicable license terms accompanying it,
+included in or with it, or referenced in it. Nothing in this Agreement
+limits Your rights under those licenses.
+
+(e) Except as expressly permitted by this Agreement or by applicable law
+without the possibility of contractual waiver, You will not, and will not
+permit any third party to: (i) sell, rent, lease, loan, distribute,
+disclose, publish, transfer, or sublicense the Software, in whole or in
+part; (ii) modify or create derivative works of the Software; (iii)
+reverse-assemble, reverse-compile, or reverse-engineer the Software; (iv)
+use the Software to provide services to third parties (including as a
+service bureau, SaaS offering, or managed service) without TextQL's prior
+written consent; (v) remove or alter any copyright notices or proprietary
+legends; (vi) disclose the results of any testing or evaluation of the
+Software, including benchmarks, without TextQL's prior written consent; or
+(vii) subject the Software, in whole or in part or as part of a larger
+work, to the terms of any other agreement, including any open source
+license.
+
+(f) You are granted no rights to the Software's source code. No license
+rights will be implied. The Software, including all copies thereof, is and
+remains the exclusive property of TextQL and its licensors. TextQL reserves
+the right to verify Your use of the Software for purposes of confirming
+compliance with this Agreement; where a Master Agreement exists, any such
+verification follows its audit provisions.
+
+(g) Certain functionality of the Software requires deployment credentials
+issued by TextQL and validates entitlement against TextQL services. You
+will not disable, circumvent, or interfere with any license-validation or
+entitlement mechanism in the Software.
+
+(h) The Software reports operational usage data (such as feature usage,
+deployment identifiers, organization name, and user email addresses of
+operators, but not the contents of Your data) to TextQL to provide,
+maintain, meter, and improve the service. TextQL may use such data for
+diagnostic, corrective, and product-improvement purposes and may disclose
+it only in aggregate or de-identified form.
+
+3. RESPONSIBILITIES. You are responsible for installing the Software and
+for the security, backup, and operation of Your clusters, networks, and
+data. This Agreement does not require TextQL to provide Enhancements,
+consulting services, technical assistance, installation, training,
+support, or maintenance of any kind (collectively, "Services"). Any
+Services TextQL elects to provide outside a Master Agreement are provided
+at TextQL's sole discretion and may be modified or discontinued at any
+time.
+
+4. DISCLAIMER OF WARRANTY. TEXTQL (A) PROVIDES SERVICES (IF ANY), (B)
+LICENSES THE SOFTWARE, AND (C) PROVIDES THIRD PARTY SOFTWARE TO YOU
+HEREUNDER ON AN "AS-IS" BASIS WITHOUT WARRANTIES OF ANY KIND (ORAL OR
+WRITTEN, EXPRESS OR IMPLIED, OR STATUTORY). WITHOUT LIMITING THE FOREGOING,
+THERE ARE NO IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE, OR NON-INFRINGEMENT. TEXTQL DOES NOT WARRANT THAT THE
+SOFTWARE, THIRD PARTY SOFTWARE, OR SERVICES WILL MEET YOUR REQUIREMENTS OR
+THAT THEIR OPERATION WILL BE UNINTERRUPTED OR ERROR-FREE. YOU BEAR THE
+ENTIRE RISK AS TO SATISFACTORY QUALITY, PERFORMANCE, ACCURACY, AND RESULTS
+OBTAINED FROM THE SOFTWARE. YOUR MASTER AGREEMENT, IF ANY, MAY CONTAIN
+SEPARATE WARRANTY TERMS FOR THE TEXTQL PLATFORM. SOME JURISDICTIONS
+RESTRICT DISCLAIMERS OF WARRANTY, SO THE ABOVE MAY NOT FULLY APPLY TO YOU.
+
+5. LIMITATION OF LIABILITY. UNDER NO CIRCUMSTANCES WILL TEXTQL'S AND ITS
+LICENSORS' TOTAL CUMULATIVE LIABILITY FOR CLAIMS RELATING TO THIS
+AGREEMENT, THE SERVICES, THE SOFTWARE, AND/OR THIRD PARTY SOFTWARE (WHETHER
+BASED IN CONTRACT, STATUTE, OR TORT, INCLUDING NEGLIGENCE, OR OTHERWISE)
+EXCEED ONE THOUSAND US DOLLARS (US$1,000), OR, WHERE A MASTER AGREEMENT
+APPLIES, THE LIMIT STATED THERE. IN NO EVENT WILL TEXTQL OR ITS LICENSORS
+BE LIABLE FOR ANY INDIRECT, SPECIAL, PUNITIVE, INCIDENTAL, OR CONSEQUENTIAL
+DAMAGES, OR FOR LOSS OF PROFITS, REVENUE, TIME, OPPORTUNITY, OR DATA, EVEN
+IF INFORMED OF THE POSSIBILITY OF SUCH DAMAGES. SOME JURISDICTIONS RESTRICT
+LIMITATIONS OF LIABILITY, SO THE ABOVE MAY NOT FULLY APPLY TO YOU.
+
+6. EXPORT AND GOVERNMENT USE. You will comply with all applicable United
+States and foreign laws and regulations in connection with this Agreement,
+including U.S. export, re-export, and economic sanctions laws and
+regulations. You represent that You are not located in, and will not
+export, re-export, or transfer the Software to, any embargoed country or
+prohibited party, and that You will not use the Software for any purpose
+prohibited by applicable export control laws. The Software is commercial
+computer software and commercial computer software documentation; any use,
+duplication, or disclosure by the U.S. Government is subject to the
+restrictions applicable to commercial items, including 48 C.F.R. 52.227-14,
+52.227-19, and 252.227-7015, as applicable.
+
+7. TERMINATION. Either party may terminate this Agreement with or without
+cause upon written notice to the other. Upon expiration or termination,
+You will immediately cease all use of the Software, permanently remove it
+from Your clusters and systems, destroy all copies, and, upon TextQL's
+request, certify in writing that You have done so. Sections 2(e), 2(f),
+and 4 through 11 survive expiration or termination.
+
+8. GOVERNING LAW AND DISPUTES. The parties will first attempt in good
+faith to resolve any controversy or claim by negotiation. If they are
+unable to do so, the claim will be resolved by binding arbitration before
+a sole arbitrator in New York, New York, under the then-current Commercial
+Rules of the American Arbitration Association and the federal substantive
+and procedural law of arbitration. The arbitrator's award will be final
+and binding and may be entered in any court of competent jurisdiction, but
+may include only damages consistent with the limitations in this
+Agreement. Each party bears its own attorneys' fees and costs. The
+obligation to arbitrate does not apply to claims for misuse or
+infringement of a party's intellectual property rights. Any claim must be
+brought within two years after the claimant knows or should have known of
+it. New York law governs the interpretation and enforcement of this
+Agreement, except that the Federal Arbitration Act governs arbitrability.
+
+9. FEEDBACK. TextQL has no obligation of any kind with respect to
+comments, suggestions, design changes, or improvements You elect to
+provide ("Feedback"), and TextQL and its affiliates are free to use any
+ideas, concepts, know-how, or techniques contained in Feedback for any
+purpose, without restriction or payment.
+
+10. CONFIDENTIALITY. You will not disclose non-public information about
+the Software, including the results of any testing or evaluation and any
+benchmarks, without TextQL's prior written consent.
+
+11. ENTIRE AGREEMENT. Together with the Master Agreement (if any), this
+Agreement constitutes the entire understanding of the parties with respect
+to the Software and supersedes all other prior agreements and
+understandings, whether oral or written. You will not assign this
+Agreement or Your rights, nor delegate Your obligations, under this
+Agreement. Failure to enforce any term is not a waiver of future
+enforcement. The provisions of this Agreement are severable. "Include,"
+"includes," and "including" introduce non-limiting examples.
+
+For licensing inquiries, contact support@textql.com.

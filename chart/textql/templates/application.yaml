@@ -6,7 +6,7 @@ metadata:
     {{- include "tql.labels" . | nindent 4 }}
   annotations:
     kubernetes-engine.cloud.google.com/icon: {{ .Chart.Icon | quote }}
-    marketplace.cloud.google.com/deploy-info: '{"partner_id": "textql", "product_id": "textql", "partner_name": "TextQL"}'
+    marketplace.cloud.google.com/deploy-info: '{"partner_id": "textql", "product_id": "textql-byoc-byol", "partner_name": "TextQL"}'
 spec:
   selector:
     matchLabels:

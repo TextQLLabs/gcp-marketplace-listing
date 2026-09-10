@@ -1,14 +1,11 @@
-# Verification overlay: merged over /data/schema.yaml when the app runs in
-# the Marketplace Verification system (mpdev verify). Runs the full stack —
-# compute-engine, ontology, tableau, web, oathkeeper, in-cluster PostgreSQL,
-# Valkey, and MinIO object storage — at single-replica scale, and enables the
-# tester Pod that probes each service's health endpoint.
+# Verification overlay (/data-test), merged over /data/schema.yaml when the
+# app runs in the Marketplace Verification system. Runs the full stack at
+# single-replica scale and enables the tester Pod.
 #
-# Sandbox worker pool minimums are 0: pre-spawned workers need the shared
-# Filestore PVC (sandbox.filestore.enabled), which verification cannot
-# provision (cluster-scoped StorageClass, slow Filestore creation). The
-# compute-engine deployment itself, including its internal sandbox container
-# and the database migrations in its init container, runs fully.
+# Worker pool minimums stay at the enforced floor of 1; the RWO PVC lets
+# that one pre-spawned worker run without Filestore. The deployment
+# credentials and JWT key pair below are throwaway values generated for
+# this overlay so the services can boot — they are not usable credentials.
 properties:
   web.replicas:
     type: integer
@@ -37,9 +34,6 @@ properties:
   ontology.replicas:
     type: integer
     default: 1
-  minio.enabled:
-    type: boolean
-    default: true
   sandbox.rwoPvc.enabled:
     type: boolean
     default: true
@@ -49,23 +43,12 @@ properties:
   images.tester:
     type: string
     default: "$REGISTRY/tester:$TAG"
-  # Deployment credentials for verification: a placeholder deployment id
-  # (valid UUID format, not registered with TextQL) plus a throwaway ed25519
-  # key generated for this overlay. compute-engine parses them locally at
-  # startup; LLM calls through the TextQL console proxy fail at runtime,
-  # which verification does not exercise. NOT valid credentials.
   compute.deploymentId:
     type: string
     default: "6b1de52e-1c0f-4e63-9d4e-6a4b1f2c3d4e"
   secrets.deploymentPrivateKey:
     type: string
     default: "dywlUmNJUoUNclngMPTxOtyq+aGyMd2Bpqf7YA/GbvKijMRHHEDx3SNOFeha9cNPUsAk7b7qu2TsNBWXdNEuug=="
-  # Verification-only session-JWT key pair (Ed25519, base64 of the raw key
-  # bytes) with its key id (base64 of the public key's SHA-256, matching
-  # gen-values.sh), so web and compute-engine can parse a real key in the
-  # throwaway verification namespace. NOT a secret and never a default for
-  # real installs: /data/schema.yaml leaves these empty and the user guide
-  # tells users to generate their own.
   secrets.authJwtPrivateKey:
     type: string
     default: "Mxfw+Yw2fXDuvWl0GOEVo1yJUXe25kOLAohKydLtuPZYGPKXlD/7bl0b8K2eFgwPyOvnX8t9BXLa5PSTozGnDA=="

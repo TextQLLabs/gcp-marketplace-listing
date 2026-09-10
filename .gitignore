@@ -1,3 +1,4 @@
 .DS_Store
 *.tgz
 chart/textql/charts/
+internal/

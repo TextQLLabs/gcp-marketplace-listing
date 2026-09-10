@@ -1,100 +1,88 @@
-# TextQL — Google Cloud Marketplace chart for GKE.
+# TextQL for GKE (Google Cloud Marketplace chart).
 #
-# GKE-only. Scheduling policy (pod anti-affinity, topology spread) and worker
-# pool sizes are baked in. The chart is fully deployable with client-side
-# tools only (helm template / the Cloud Marketplace deployer): no hooks that
-# require a Tiller/server, no lookup calls, no bundled dependencies.
+# Renders entirely client-side: no lookups, no required server-side hooks,
+# no bundled chart dependencies. Scheduling policy and worker pool tuning
+# are baked in; see SETUP.md for everything you are expected to bring.
 #
-# Two secrets modes (global.secretsMode):
-#   - "values" (default): Kubernetes Secrets are rendered from the values in
-#     the `secrets:` block below. The Cloud Marketplace deployer generates the
-#     random passwords automatically; CLI installs must set them (see SETUP.md).
-#   - "externalSecrets": secrets sync from GCP Secret Manager through the
-#     External Secrets Operator, which must already be installed on the
-#     cluster (the chart no longer bundles it).
+# Secrets (global.secretsMode):
+#   values          - plain Kubernetes Secrets rendered from the `secrets:`
+#                     block. The Marketplace deployer generates the random
+#                     ones; CLI installs set them (SETUP.md). Default.
+#   externalSecrets - synced from GCP Secret Manager via the External
+#                     Secrets Operator, which must already be installed.
 #
-# Two database modes:
-#   - postgres.enabled=true (default): an in-cluster PostgreSQL Deployment
-#     backed by a PersistentVolumeClaim is created and every component is
-#     wired to it automatically.
-#   - postgres.enabled=false: bring your own PostgreSQL (e.g. Cloud SQL over
-#     private IP) via global.db.*.
+# Database: in-cluster PostgreSQL by default (postgres.enabled), or bring
+# your own via global.db.* with postgres.enabled=false.
 
 global:
-  # Tag shared by every image in the release (Marketplace requires all images
-  # of a release to carry the same track and version tags).
+  # One version tag shared by every image in a release.
   imageTag: "1.3.20"
-  # Registry path every image is pulled from when the per-image override in
-  # `images:` is empty: <registry>/<name>:<imageTag>.
-  registry: "us-docker.pkg.dev/textql-public/textql"
-  # Hostnames the deployment is served on. Used for Gateway routes and CORS
-  # allowed origins.
+  # Images resolve to <registry>/<name>:<imageTag> unless overridden
+  # per-image under `images:`. The main app image lives at <registry>
+  # itself, per the Marketplace repo layout.
+  registry: "us-docker.pkg.dev/textql-public/textql/textql-byoc-byol"
+  # Hostname(s) the app is served on; used for routes and CORS.
   hostnames: ["textql.example.com"]
-  # Single-hostname override. When set (e.g. from the Cloud Marketplace UI,
-  # which can only collect scalars), it replaces the hostnames list.
+  # Single-hostname override (the Marketplace UI can only collect scalars).
+  # Wins over `hostnames` when set.
   hostname: ""
-  # "values" or "externalSecrets" — see the header comment.
+  # "values" or "externalSecrets" (see header).
   secretsMode: "values"
   externalSecrets:
-    # Prefix of every Secret Manager entry, e.g. textql-db-password.
+    # Secret Manager entries are named <remoteKeyPrefix>-<suffix>.
     remoteKeyPrefix: "textql"
     gcp:
-      # GCP project that holds the Secret Manager entries. Required when
-      # secretsMode=externalSecrets.
+      # Project that holds the Secret Manager entries. Required in
+      # externalSecrets mode.
       projectId: ""
-      # Optional Kubernetes ServiceAccount (bound to a GCP service account via
-      # Workload Identity) the SecretStore impersonates to read Secret
-      # Manager. Empty = the External Secrets controller's own identity.
-      # Requires clusterLocation and clusterName when set.
+      # Optional Workload-Identity-bound KSA for the SecretStore. Needs
+      # clusterLocation and clusterName when set.
       serviceAccountRef: ""
       clusterLocation: ""
       clusterName: ""
-  # External PostgreSQL (used only when postgres.enabled=false). TLS is
+  # External PostgreSQL, used only when postgres.enabled=false. TLS is
   # required (sslmode=require).
   db:
     host: ""
     port: "5432"
     name: "textql"
     username: "textql"
-    # Only used in secretsMode=values. In externalSecrets mode the password
-    # and URL come from Secret Manager.
+    # values mode only; externalSecrets mode reads it from Secret Manager.
     password: ""
   gcs:
-    # Optional GCS bucket for application object storage, accessed through
-    # the S3-interop endpoint with the HMAC key in secrets.gcsHmac*. File
-    # uploads and exports are unavailable until this is configured.
+    # GCS bucket for object storage (used when minio.enabled=false).
+    # Accessed through the S3-interop endpoint with the HMAC key in
+    # secrets.gcsHmac*.
     bucket: ""
   auth:
     # From-address for outbound email (invites, shared reports).
     emailSenderAddress: "textql@example.com"
-    # Key id (e.g. "k1") of the connector encryption key used for new
-    # encryptions.
+    # Key id of the connector encryption key used for new encryptions.
     connectorEncryptionPrimaryKey: "k1"
-    # Single-tenant OIDC SSO. Sign-in requires it; the app installs and runs
-    # without it, but nobody can log in until it is configured.
+    # Single-tenant OIDC SSO. The app installs and runs without it, but
+    # nobody can sign in until issuerUrl, clientId, and the client secret
+    # are set.
     oidc:
       # "generic", "okta", or "azure_ad".
       providerType: "generic"
-      # e.g. "https://login.microsoftonline.com/<tenant>/v2.0"
+      # e.g. https://login.microsoftonline.com/<tenant>/v2.0
       issuerUrl: ""
       clientId: ""
-      # Optional; defaults to "openid profile email".
+      # Defaults to "openid profile email".
       scopes: ""
   loadBalancer:
-    # Pre-created GCP SSL certificate name for HTTPS termination at the
-    # Gateway. Empty serves HTTP only. Only used when gateway.enabled=true.
+    # GCP SSL certificate name for HTTPS at the Gateway. Empty = HTTP only.
     sslCertificate: ""
-    # Pre-reserved regional external static IP name. Empty = ephemeral IP.
+    # Pre-reserved regional external static IP name. Empty = ephemeral.
     staticIP: ""
   sandboxProxy:
-    # Sandbox egress proxy CA certificate as base64 PEM. The certificate is
-    # public material; the CA key goes in secrets.sandboxProxyCaKey.
+    # Sandbox egress proxy CA certificate, base64-encoded PEM. Public
+    # material; the CA key goes in secrets.sandboxProxyCaKey.
     caCert: ""
 
-# Per-image full-reference overrides (registry/repository:tag). When set they
-# take precedence over global.registry/global.imageTag composition. The Cloud
-# Marketplace deployer substitutes these so installs pull the images
-# republished in the Marketplace registry.
+# Full image-reference overrides (repo:tag or repo@digest). Set by the
+# Marketplace deployer; also how you pin digests. Empty = composed from
+# global.registry and global.imageTag.
 images:
   web: ""
   computeEngine: ""
@@ -102,17 +90,17 @@ images:
   pyWorkerDashboard: ""
   ontology: ""
   textableau: ""
-  minio: ""
   oathkeeper: ""
   valkey: ""
   kubectl: ""
   postgres: ""
+  minio: ""
   tester: ""
 
 web:
   enabled: true
   replicas: 3
-  # Public URL the app is served on, e.g. https://textql.yourcompany.com
+  # Public URL the app is served on.
   publicApi: "https://textql.example.com"
 
 oathkeeper:
@@ -122,9 +110,9 @@ oathkeeper:
 computeEngine:
   enabled: true
   replicas: 2
-  # Sandbox worker pool sizing. The minimums are pre-spawned at startup;
-  # workers need the shared Filestore PVC (sandbox.filestore.enabled), so
-  # keep the minimums at 0 until it is enabled.
+  # Sandbox worker pool sizing. The hard minimum is pre-spawned at startup
+  # (compute-engine enforces at least 1); pre-spawned workers need shared
+  # storage — see `sandbox` below.
   poolSize: "256"
   minWorkersAvailable:
     hard: 10
@@ -142,17 +130,13 @@ tableau:
 valkey:
   enabled: true
 
-# In-cluster PostgreSQL (default). Disable to use an external database via
-# global.db.*.
 postgres:
   enabled: true
   auth:
     database: "textql"
     username: "textql"
-    # Required in secretsMode=values when postgres.enabled. Generated
-    # automatically by the Cloud Marketplace deployer; CLI installs must set
-    # it. Changing it after the first install does NOT change the password of
-    # an initialized database volume.
+    # Required in values mode. Generated by the Marketplace deployer; CLI
+    # installs must set it. Fixed once the database volume is initialized.
     password: ""
   storage:
     size: "64Gi"
@@ -160,12 +144,10 @@ postgres:
     storageClassName: ""
 
 compute:
-  # TextQL deployment id, issued by TextQL with your license (BYOL). All LLM
-  # traffic is routed through the TextQL console LLM proxy with these
-  # credentials — no model API keys are configured in this deployment.
+  # TextQL deployment id, issued with your license (BYOL). AI features stay
+  # disabled until it is set.
   deploymentId: ""
-  # Outbound email over SMTP. Leave host empty to disable outbound email
-  # (sign-in stays SSO-only either way).
+  # Outbound email over SMTP. Empty host = outbound email disabled.
   smtp:
     host: ""
     port: "587"
@@ -175,104 +157,86 @@ compute:
     # "plain", "login", or "cram-md5".
     authType: "plain"
   gke:
-    # VPC network the GKE cluster (its subnet) is attached to — Filestore
-    # instances for sandbox storage are provisioned on this network and must
-    # share it with the cluster. Required when sandbox.filestore.enabled.
+    # VPC network for Filestore instances; must be the network the
+    # cluster's subnet belongs to. Required when sandbox.filestore.enabled.
     filestoreNetwork: ""
 
 sandbox:
-  # Evaluation-grade single-node sandbox storage: a ReadWriteOnce PVC named
-  # sandbox-files-pvc so spawned sandbox workers can run without Filestore.
-  # Workers all land on one node and do not share files with compute-engine,
-  # so this is for evaluation and verification only — production uses
-  # filestore below. Ignored when filestore is enabled.
+  # Single-node ReadWriteOnce volume for sandbox workers. Good enough to
+  # run workers without Filestore; workers all land on one node and do not
+  # share files with compute-engine, so treat it as evaluation storage.
   rwoPvc:
     enabled: false
     size: "10Gi"
-  # Filestore-backed shared storage for sandbox workers. Requires the
-  # Filestore CSI driver and permission to create a StorageClass
-  # (cluster-scoped), so it is off by default: Marketplace UI installs run
-  # with namespace-scoped permissions. When disabled, sandbox files live on
-  # ephemeral emptyDir volumes (fine for evaluation; enable Filestore for
-  # production, see SETUP.md).
+  # Filestore-backed ReadWriteMany storage, the production option. Needs
+  # the Filestore CSI driver and permission to create a StorageClass, so
+  # it is off by default (Marketplace installs run namespace-scoped).
   filestore:
     enabled: false
 
-# Evaluation-grade in-cluster S3-compatible object storage (MinIO). When
-# enabled, compute-engine and web point at it instead of the GCS S3-interop
-# endpoint, and secrets.gcsHmacAccessKey/gcsHmacSecretKey double as the
-# MinIO root credentials. Single replica on a PVC: fine for evaluation and
-# verification, not a durable production object store — use a GCS bucket
-# (global.gcs.*) for production.
+# In-cluster S3-compatible object storage (MinIO), on by default so file
+# features work out of the box. Single node on a PVC; for heavy production
+# use switch to a GCS bucket (global.gcs.*, minio.enabled=false).
+# secrets.gcsHmacAccessKey/gcsHmacSecretKey double as the root credentials.
 minio:
-  enabled: false
+  enabled: true
   bucket: "textql"
   storage:
     size: "16Gi"
 
-# GKE Gateway (external HTTP(S) load balancer). Off by default: enable it
-# after install (helm upgrade --set gateway.enabled=true) once DNS, the
-# static IP, and the SSL certificate exist. Until then, reach the app with
-# kubectl port-forward.
+# GKE Gateway (external load balancer). Enable after install once DNS, the
+# static IP, and the certificate exist; until then use port-forward.
 gateway:
   enabled: false
 
-# Secret material for secretsMode=values. The Cloud Marketplace deployer
-# generates the random ones; CLI installs must set every value marked
-# (required). See SETUP.md for generation commands.
+# Secret material for values mode. The Marketplace deployer generates the
+# random ones; CLI installs must set everything marked (required).
+# Generation commands are in SETUP.md.
 secrets:
   # (required) Valkey AUTH password.
   valkeyPassword: ""
-  # (required) Shared key for service-to-service calls.
+  # (required) Key for service-to-service calls.
   internalKey: ""
   # (required) Key the sandbox workers authenticate with.
   sandboxAuthKey: ""
-  # (required) Connector-credentials encryption key material. The chart
-  # derives the key map as "k1=<base64(value)>", so any 32-character random
-  # string works.
+  # (required) Connector-credentials encryption material; the chart derives
+  # the key map as "k1=<base64(value)>", so any 32-char random string works.
   connectorEncryptionKey: ""
   # Shared secret between compute-engine and the Tableau engine.
   tableauInternalSecret: ""
-  # Ed25519 key pair for session JWTs, base64 of the raw key bytes
-  # (private = 64-byte seed||public, public = 32 bytes). Optional at install
-  # time; sign-in does not work until they are set. Generate with OpenSSL
-  # 1.1.1+ (see SETUP.md) or request from TextQL.
+  # Ed25519 session-JWT key pair, base64 of the raw key bytes (private =
+  # 64-byte seed||public, public = 32 bytes). Sign-in does not work until
+  # set. See SETUP.md for generation.
   authJwtPrivateKey: ""
   authJwtPublicKey: ""
   authJwtKeyId: "k1"
-  # The deployment private key issued by TextQL (pairs with
+  # Deployment private key issued by TextQL (pairs with
   # compute.deploymentId).
   deploymentPrivateKey: ""
-  # Client secret of the OIDC application in global.auth.oidc.
+  # Client secret of the OIDC application.
   oidcClientSecret: ""
   # Only used when compute.smtp.host is set.
   smtpPassword: ""
-  # GCS HMAC key pair for global.gcs.bucket. With minio.enabled these become
-  # the MinIO root user and password instead.
+  # Object storage credentials: GCS HMAC key pair, or the MinIO root
+  # user/password when minio.enabled. (required when minio.enabled)
   gcsHmacAccessKey: ""
   gcsHmacSecretKey: ""
-  # base64-encoded PEM private key of the sandbox egress proxy CA (pairs
-  # with global.sandboxProxy.caCert). (required when computeEngine.enabled)
-  # — compute-engine refuses to launch sandbox workers without it. The
-  # Marketplace deployer generates a self-signed CA; CLI installs generate
-  # one with the command in SETUP.md.
+  # (required) base64-encoded PEM private key of the sandbox proxy CA
+  # (pairs with global.sandboxProxy.caCert). compute-engine will not launch
+  # sandbox workers without it. The Marketplace deployer generates it.
   sandboxProxyCaKey: ""
 
-# pre-delete helm hook Job that removes dynamically created sandbox worker
-# pods and their token Secret on uninstall. For CLI (helm) installs only:
-# the Cloud Marketplace deployer does not support non-test helm hooks, so it
-# is off by default. Marketplace installs follow the manual cleanup steps in
-# the user guide instead.
+# pre-delete hook that cleans up dynamically created sandbox pods on
+# uninstall. CLI installs only — the Marketplace deployer rejects charts
+# with non-test helm hooks.
 sandboxPodCleaner:
   enabled: false
 
-# One-shot database migration Job. Normally unnecessary (compute-engine runs
-# migrations in an init container); used by the Marketplace verification
-# tests, where compute-engine is disabled.
+# One-shot migration Job. Normally unnecessary (compute-engine migrates in
+# an init container); kept for running migrations standalone.
 migrationJob:
   enabled: false
 
-# Marketplace verification tester Pod. Enabled only by the verification
-# overlay (/data-test); never enable it for a real install.
+# Verification tester Pod. Only the Marketplace test overlay enables this.
 apptest:
   enabled: false

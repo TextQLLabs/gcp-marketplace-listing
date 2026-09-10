@@ -1,7 +1,5 @@
 {{- if .Values.sandbox.filestore.enabled }}
-{{/* The name is fixed: sandbox worker pods spawned by compute-engine
-     reference this claim by exactly this name (compiled into the image), so
-     it cannot carry the release prefix. One instance per namespace. */}}
+{{/* Fixed name: worker pods reference this claim as "sandbox-files-pvc". */}}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:

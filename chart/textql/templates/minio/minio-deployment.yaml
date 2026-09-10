@@ -22,6 +22,7 @@ spec:
         {{- include "tql.podAnnotations" . | nindent 8 }}
     spec:
       {{- include "tql.podRuntime" . | nindent 6 }}
+      # bitnami images need root-group-writable paths, hence gid 0
       securityContext:
         runAsNonRoot: true
         runAsUser: 1001
