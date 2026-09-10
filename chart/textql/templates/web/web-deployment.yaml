@@ -49,10 +49,17 @@ spec:
               value: "Infinity"
             - name: SHUTDOWN_TIMEOUT
               value: "170"
+            {{- if .Values.minio.enabled }}
+            - name: PUBLIC_AWS_ENDPOINT
+              value: "http://{{ .Release.Name }}-minio:9000"
+            - name: PRIVATE_S3_REGION
+              value: "us-east-1"
+            {{- else }}
             - name: PUBLIC_AWS_ENDPOINT
               value: "https://storage.googleapis.com"
             - name: PRIVATE_S3_REGION
               value: "auto"
+            {{- end }}
             - name: PRIVATE_DATABASE_URL
               valueFrom:
                 secretKeyRef:

@@ -1,25 +1,43 @@
 # Verification overlay: merged over /data/schema.yaml when the app runs in
-# the Marketplace Verification system (mpdev verify). Trims the deployment to
-# the minimal healthy footprint and enables the functionality tests: a
-# database migration Job against the in-cluster PostgreSQL, and a tester Pod
-# that probes the web and oathkeeper health endpoints.
+# the Marketplace Verification system (mpdev verify). Runs the full stack —
+# compute-engine, ontology, tableau, web, oathkeeper, in-cluster PostgreSQL,
+# Valkey, and MinIO object storage — at single-replica scale, and enables the
+# tester Pod that probes each service's health endpoint.
+#
+# Sandbox worker pool minimums are 0: pre-spawned workers need the shared
+# Filestore PVC (sandbox.filestore.enabled), which verification cannot
+# provision (cluster-scoped StorageClass, slow Filestore creation). The
+# compute-engine deployment itself, including its internal sandbox container
+# and the database migrations in its init container, runs fully.
 properties:
-  computeEngine.enabled:
-    type: boolean
-    default: false
-  ontology.enabled:
-    type: boolean
-    default: false
-  tableau.enabled:
-    type: boolean
-    default: false
   web.replicas:
     type: integer
     default: 1
   oathkeeper.replicas:
     type: integer
     default: 1
-  migrationJob.enabled:
+  computeEngine.replicas:
+    type: integer
+    default: 1
+  computeEngine.poolSize:
+    type: string
+    default: "8"
+  computeEngine.minWorkersAvailable.hard:
+    type: integer
+    default: 0
+  computeEngine.minWorkersAvailable.soft:
+    type: integer
+    default: 0
+  computeEngine.dashboardPoolSize:
+    type: string
+    default: "1"
+  computeEngine.dashboardMinAvailable:
+    type: string
+    default: "0"
+  ontology.replicas:
+    type: integer
+    default: 1
+  minio.enabled:
     type: boolean
     default: true
   apptest.enabled:
@@ -28,15 +46,29 @@ properties:
   images.tester:
     type: string
     default: "$REGISTRY/tester:$TAG"
+  # Deployment credentials for verification: a placeholder deployment id
+  # (valid UUID format, not registered with TextQL) plus a throwaway ed25519
+  # key generated for this overlay. compute-engine parses them locally at
+  # startup; LLM calls through the TextQL console proxy fail at runtime,
+  # which verification does not exercise. NOT valid credentials.
+  compute.deploymentId:
+    type: string
+    default: "6b1de52e-1c0f-4e63-9d4e-6a4b1f2c3d4e"
+  secrets.deploymentPrivateKey:
+    type: string
+    default: "dywlUmNJUoUNclngMPTxOtyq+aGyMd2Bpqf7YA/GbvKijMRHHEDx3SNOFeha9cNPUsAk7b7qu2TsNBWXdNEuug=="
   # Verification-only session-JWT key pair (Ed25519, base64 of the raw key
-  # bytes), so the web deployment's health endpoint (which requires a
-  # parseable public key) can go ready in the throwaway verification
-  # namespace. NOT a secret and never a default for real installs:
-  # /data/schema.yaml leaves both empty and the user guide tells users to
-  # generate their own.
+  # bytes) with its key id (base64 of the public key's SHA-256, matching
+  # gen-values.sh), so web and compute-engine can parse a real key in the
+  # throwaway verification namespace. NOT a secret and never a default for
+  # real installs: /data/schema.yaml leaves these empty and the user guide
+  # tells users to generate their own.
   secrets.authJwtPrivateKey:
     type: string
     default: "Mxfw+Yw2fXDuvWl0GOEVo1yJUXe25kOLAohKydLtuPZYGPKXlD/7bl0b8K2eFgwPyOvnX8t9BXLa5PSTozGnDA=="
   secrets.authJwtPublicKey:
     type: string
     default: "WBjyl5Q/+25dG/CtnhYMD8jr51/LfQVy2uT0k6Mxpww="
+  secrets.authJwtKeyId:
+    type: string
+    default: "SfuUFDRCH7eyzH+8o/WKo+pgFOEl9W8yjnobzyCGtxM="

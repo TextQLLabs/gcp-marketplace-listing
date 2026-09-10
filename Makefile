@@ -16,13 +16,14 @@ MIRROR_SPECS = \
 	valkey=docker.io/valkey/valkey:8.1-alpine \
 	kubectl=docker.io/bitnamilegacy/kubectl:1.33 \
 	postgres=docker.io/pgvector/pgvector:pg17 \
+	minio=docker.io/bitnamilegacy/minio:latest \
 	tester=docker.io/curlimages/curl:8.11.1
 
 # Marketplace product service-name annotation, required on every image
 # manifest of a release. First-party images get it from the mirror script in
 # the main repository; this covers the images built/mirrored here.
 SERVICE_NAME_ANNOTATION = com.googleapis.cloudmarketplace.product.service.name=services/textql-byoc-listing.endpoints.textql-public.cloud.goog
-ANNOTATE_IMAGES = valkey kubectl postgres tester deployer
+ANNOTATE_IMAGES = valkey kubectl postgres minio tester deployer
 
 .PHONY: deployer push-deployer mirror-third-party annotate app-crd verify
 

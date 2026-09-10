@@ -104,6 +104,10 @@ x-google-marketplace:
       properties:
         images.postgres:
           type: FULL
+    minio:
+      properties:
+        images.minio:
+          type: FULL
 
 properties:
   name:
@@ -163,6 +167,30 @@ properties:
     type: string
     title: Outbound email from-address
     default: "textql@example.com"
+  minio.enabled:
+    type: boolean
+    title: Deploy evaluation object storage (MinIO)
+    description: >-
+      Runs a single-node in-cluster S3-compatible store so file features work
+      out of the box. For evaluation only; use a GCS bucket (global.gcs.*)
+      for production.
+    default: false
+  secrets.gcsHmacAccessKey:
+    type: string
+    x-google-marketplace:
+      type: GENERATED_PASSWORD
+      generatedPassword:
+        length: 20
+        includeSymbols: false
+        base64: false
+  secrets.gcsHmacSecretKey:
+    type: string
+    x-google-marketplace:
+      type: GENERATED_PASSWORD
+      generatedPassword:
+        length: 40
+        includeSymbols: false
+        base64: false
   postgres.auth.password:
     type: string
     title: In-cluster PostgreSQL password

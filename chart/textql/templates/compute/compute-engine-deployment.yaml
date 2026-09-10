@@ -100,13 +100,15 @@ spec:
             - name: DOCKER_HUB_IMAGE_TAG
               value: "{{ .Values.global.imageTag }}"
             - name: POOL_SIZE
-              value: "256"
+              value: "{{ .Values.computeEngine.poolSize }}"
             - name: HARD_MIN_WORKERS_AVAILABLE
-              value: "10"
+              value: "{{ .Values.computeEngine.minWorkersAvailable.hard }}"
+            - name: SOFT_MIN_WORKERS_AVAILABLE
+              value: "{{ .Values.computeEngine.minWorkersAvailable.soft }}"
             - name: DASHBOARD_POOL_SIZE
-              value: "16"
+              value: "{{ .Values.computeEngine.dashboardPoolSize }}"
             - name: DASHBOARD_MIN_WORKERS_AVAILABLE
-              value: "2"
+              value: "{{ .Values.computeEngine.dashboardMinAvailable }}"
             - name: SANDBOX_SERVICE_ANTI_AFFINITY
               value: "true"
             - name: KUBERNETES_SANDBOX_FILE_DIR
@@ -162,12 +164,21 @@ spec:
                 secretKeyRef:
                   name: {{ .Release.Name }}-valkey-secrets
                   key: password
+            {{- if .Values.minio.enabled }}
+            - name: AWS_REGION
+              value: "us-east-1"
+            - name: AWS_ENDPOINT
+              value: "http://{{ .Release.Name }}-minio:9000"
+            - name: S3_BUCKET_NAME
+              value: "{{ .Values.minio.bucket }}"
+            {{- else }}
             - name: AWS_REGION
               value: "auto"
             - name: AWS_ENDPOINT
               value: "https://storage.googleapis.com"
             - name: S3_BUCKET_NAME
               value: "{{ .Values.global.gcs.bucket }}"
+            {{- end }}
             - name: AWS_REQUEST_CHECKSUM_CALCULATION
               value: "when_required"
             - name: AWS_RESPONSE_CHECKSUM_VALIDATION
@@ -265,7 +276,7 @@ spec:
             - name: AUTH_LOGIN_SENDER_NAME
               value: "TextQL"
             - name: EMAIL_PROVIDER
-              value: "smtp"
+              value: {{ ternary "smtp" "ses" (ne ($smtp.host | default "") "") | quote }}
             - name: SMTP_HOST
               value: "{{ $smtp.host }}"
             - name: SMTP_PORT
@@ -366,7 +377,7 @@ spec:
         - name: sandbox-files
           {{- if .Values.sandbox.filestore.enabled }}
           persistentVolumeClaim:
-            claimName: {{ .Release.Name }}-sandbox-files
+            claimName: sandbox-files-pvc
             readOnly: false
           {{- else }}
           emptyDir: {}

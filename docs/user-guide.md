@@ -16,6 +16,10 @@ cluster:
 - **postgres** — an in-cluster PostgreSQL database (default), or bring your
   own (e.g. Cloud SQL for PostgreSQL over private IP).
 - **valkey** — in-cluster cache/queue.
+- **minio** (optional, `minio.enabled`) — a single-node in-cluster
+  S3-compatible object store so file features work out of the box. For
+  evaluation; production should use a GCS bucket (`global.gcs.bucket` plus
+  an HMAC key in `secrets.gcsHmac*`).
 
 TextQL is a **commercial, BYOL (bring your own license)** product. The app
 installs and starts without credentials, but AI features require a
@@ -113,6 +117,8 @@ Key parameters (all settable in the UI or via `--set`):
 | `global.auth.oidc.*` / `secrets.oidcClientSecret` | OIDC single sign-on | empty |
 | `secrets.authJwtPrivateKey` / `secrets.authJwtPublicKey` | Session JWT EC P-256 key pair | empty |
 | `gateway.enabled` | GKE Gateway (external load balancer) | `false` |
+| `minio.enabled` | Evaluation in-cluster object storage | `false` |
+| `computeEngine.poolSize` / `computeEngine.minWorkersAvailable.*` | Sandbox worker pool sizing | `256` / `10`,`2` |
 | `sandbox.filestore.enabled` | Filestore-backed shared sandbox storage | `false` |
 | `global.secretsMode` | `values` or `externalSecrets` | `values` |
 
@@ -132,8 +138,8 @@ helm upgrade "$NAME" ./chart/textql -n "$NAMESPACE" --reuse-values \
 
 Repeat for `images.computeEngine`, `images.pyWorker`,
 `images.pyWorkerDashboard`, `images.ontology`, `images.textableau`,
-`images.oathkeeper`, `images.valkey`, `images.kubectl`, and
-`images.postgres`.
+`images.oathkeeper`, `images.valkey`, `images.kubectl`, `images.postgres`,
+and `images.minio`.
 
 ## Basic usage
 
@@ -208,6 +214,30 @@ helm upgrade "$NAME" ./chart/textql -n "$NAMESPACE" --reuse-values \
   --set compute.deploymentId="DEPLOYMENT_ID" \
   --set-file secrets.deploymentPrivateKey=deployment.key
 ```
+
+### Object storage
+
+File uploads, exports, and report assets need S3-compatible object storage.
+Two options:
+
+- **GCS (production):** create a bucket and an HMAC key
+  (`gcloud storage hmac create <service-account-email>`), then set
+  `global.gcs.bucket`, `secrets.gcsHmacAccessKey`, and
+  `secrets.gcsHmacSecretKey`.
+- **In-cluster MinIO (evaluation):** `--set minio.enabled=true`. The
+  `secrets.gcsHmac*` values double as the MinIO root credentials and the
+  bucket (`minio.bucket`, default `textql`) is created automatically. Data
+  lives on a single PersistentVolumeClaim; do not rely on it for production
+  durability.
+
+### Sandbox workers and outbound email
+
+Pre-spawned sandbox workers require the shared Filestore volume: enable
+`sandbox.filestore.enabled` (with `compute.gke.filestoreNetwork`) and raise
+`computeEngine.minWorkersAvailable.hard` back to its default. Outbound email
+(invites, shared reports) sends once `compute.smtp.host` and
+`secrets.smtpPassword` are set; until then sends fail without affecting the
+rest of the app.
 
 ## Back up and restore
 
@@ -286,7 +316,10 @@ Clean up resources that are intentionally left behind:
 # Persistent volumes (DELETES ALL APP DATA — back up first)
 kubectl delete pvc -n "$NAMESPACE" -l "app.kubernetes.io/name=$NAME"
 
-# Dynamically created sandbox worker pods and their token secret, if any
+# Dynamically created sandbox worker pods and their token secret, if any.
+# (CLI installs can automate this with --set sandboxPodCleaner.enabled=true,
+# which adds a pre-delete helm hook; Marketplace installs cannot, because
+# the Marketplace deployer does not support helm lifecycle hooks.)
 kubectl delete pod -n "$NAMESPACE" -l 'worker-type in (sandbox,dashboard)'
 kubectl delete secret -n "$NAMESPACE" sandbox-proxy-worker-tokens --ignore-not-found
 

@@ -102,6 +102,7 @@ images:
   pyWorkerDashboard: ""
   ontology: ""
   textableau: ""
+  minio: ""
   oathkeeper: ""
   valkey: ""
   kubectl: ""
@@ -121,6 +122,15 @@ oathkeeper:
 computeEngine:
   enabled: true
   replicas: 2
+  # Sandbox worker pool sizing. The minimums are pre-spawned at startup;
+  # workers need the shared Filestore PVC (sandbox.filestore.enabled), so
+  # keep the minimums at 0 until it is enabled.
+  poolSize: "256"
+  minWorkersAvailable:
+    hard: 10
+    soft: 2
+  dashboardPoolSize: "16"
+  dashboardMinAvailable: "2"
 
 ontology:
   enabled: true
@@ -180,6 +190,18 @@ sandbox:
   filestore:
     enabled: false
 
+# Evaluation-grade in-cluster S3-compatible object storage (MinIO). When
+# enabled, compute-engine and web point at it instead of the GCS S3-interop
+# endpoint, and secrets.gcsHmacAccessKey/gcsHmacSecretKey double as the
+# MinIO root credentials. Single replica on a PVC: fine for evaluation and
+# verification, not a durable production object store — use a GCS bucket
+# (global.gcs.*) for production.
+minio:
+  enabled: false
+  bucket: "textql"
+  storage:
+    size: "16Gi"
+
 # GKE Gateway (external HTTP(S) load balancer). Off by default: enable it
 # after install (helm upgrade --set gateway.enabled=true) once DNS, the
 # static IP, and the SSL certificate exist. Until then, reach the app with
@@ -217,12 +239,21 @@ secrets:
   oidcClientSecret: ""
   # Only used when compute.smtp.host is set.
   smtpPassword: ""
-  # GCS HMAC key pair for global.gcs.bucket.
+  # GCS HMAC key pair for global.gcs.bucket. With minio.enabled these become
+  # the MinIO root user and password instead.
   gcsHmacAccessKey: ""
   gcsHmacSecretKey: ""
   # PEM private key of the sandbox egress proxy CA (pairs with
   # global.sandboxProxy.caCert).
   sandboxProxyCaKey: ""
+
+# pre-delete helm hook Job that removes dynamically created sandbox worker
+# pods and their token Secret on uninstall. For CLI (helm) installs only:
+# the Cloud Marketplace deployer does not support non-test helm hooks, so it
+# is off by default. Marketplace installs follow the manual cleanup steps in
+# the user guide instead.
+sandboxPodCleaner:
+  enabled: false
 
 # One-shot database migration Job. Normally unnecessary (compute-engine runs
 # migrations in an init container); used by the Marketplace verification

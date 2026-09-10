@@ -40,22 +40,32 @@ instruction for each sentence.
    The schema collects the UI parameters, generates the passwords, and
    substitutes the images.
 4. **Verification tests** (`apptest/deployer/schema.yaml`,
-   `chart/textql/templates/tests/tester.yaml`,
-   `chart/textql/templates/jobs/db-migrate-job.yaml`). In test mode the
-   package installs PostgreSQL, Valkey, web, and oathkeeper. A Job runs the
-   real database migrations. A tester Pod checks the web and oathkeeper
-   health endpoints. `mpdev verify` result: see the line at the bottom of
-   this file.
-5. **Third-party images.** `valkey`, `kubectl`, `postgres`, and `tester`
-   are mirrored to `us-docker.pkg.dev/textql-public/textql/*` at tags
-   `1.3.20` and `1.3` (`make mirror-third-party`).
-6. **Image annotations.** The mirrored images and the deployer have the
+   `chart/textql/templates/tests/tester.yaml`). In test mode the package
+   installs the full stack: PostgreSQL, Valkey, **compute-engine** (with the
+   real database migrations in its init container), **ontology**,
+   **tableau-engine**, web, oathkeeper, and MinIO, at single-replica scale.
+   The tester Pod checks the health endpoints of web, oathkeeper,
+   compute-engine, ontology, and MinIO. Compute-engine runs with a
+   placeholder deployment id (a valid UUID that TextQL never issued) and a
+   throwaway generated ed25519 deployment key: it parses them locally at
+   startup, so the service is healthy; only real LLM calls would fail.
+   `mpdev verify` result: see the bottom of this file.
+5. **In-cluster S3 (MinIO).** `minio.enabled` deploys a single-node MinIO
+   and points compute-engine and web at it. This works because the
+   compute-engine S3 client always uses path-style addressing and takes its
+   endpoint from `AWS_ENDPOINT`. The bucket is created automatically. It is
+   for evaluation and verification; production installs should use a GCS
+   bucket.
+6. **Third-party images.** `valkey`, `kubectl`, `postgres`, `minio`, and
+   `tester` are mirrored to `us-docker.pkg.dev/textql-public/textql/*` at
+   tags `1.3.20` and `1.3` (`make mirror-third-party`).
+7. **Image annotations.** The mirrored images and the deployer have the
    `com.googleapis.cloudmarketplace.product.service.name` annotation
    (`make annotate`). The first-party images got it from
    `scripts/gcp-marketplace-ar-push.sh` in the main repository.
-7. **License** (`LICENSE`). A restrictive commercial license. It does not
+8. **License** (`LICENSE`). A restrictive commercial license. It does not
    permit unauthorized use.
-8. **User guide** (`docs/user-guide.md`). It has all sections that Google
+9. **User guide** (`docs/user-guide.md`). It has all sections that Google
    requires: overview, one-time setup, installation, usage, backup and
    restore, image updates, scaling, and deletion.
 
@@ -77,14 +87,24 @@ instruction for each sentence.
    the deployer in a `deployer` folder. Artifact Registry cannot hold an
    image at the bare repository root. Ask how to map this rule to
    `us-docker.pkg.dev/textql-public/textql`.
-5. **Test a full production install.** Verification runs a reduced
-   footprint (no compute-engine, ontology, or tableau). Do one real install
-   with a TextQL deployment id, a deployment key, OIDC, JWT keys, and a GCS
-   bucket. Confirm that every pod becomes ready and that you can sign in.
-6. **Decide the sandbox storage default.** Sandbox files use emptyDir when
-   `sandbox.filestore.enabled=false`. This is fine for evaluation. It is
-   not durable. Production installs must enable Filestore. The user guide
-   says this. Confirm this trade-off.
+5. **Test one real production install.** Verification now runs the full
+   stack (compute-engine, ontology, tableau, web, oathkeeper, PostgreSQL,
+   Valkey, MinIO) and all pods become ready. What verification cannot
+   prove, because it needs real accounts:
+   - **Sign-in.** Needs a real OIDC provider. Configure OIDC and confirm
+     that you can log in.
+   - **AI features.** Need a real TextQL deployment id and key.
+     Verification uses a placeholder id, so LLM calls fail at runtime.
+   - **Pre-spawned sandbox workers.** The spawned worker pods mount the
+     fixed-name PVC `sandbox-files-pvc`, which needs Filestore
+     (ReadWriteMany) and a cluster-scoped StorageClass. Verification cannot
+     create those, so the pool minimums are 0 there. Enable
+     `sandbox.filestore.enabled` in a real install and confirm workers
+     start.
+6. **Decide the storage defaults.** Sandbox files use emptyDir and MinIO is
+   off by default. Both are evaluation trade-offs: emptyDir is not durable,
+   and MinIO is a single node. Production installs should enable Filestore
+   and use a GCS bucket. The user guide says this. Confirm these defaults.
 7. **Submit in Producer Portal.** Upload the deployer path
    (`us-docker.pkg.dev/textql-public/textql/deployer:1.3.20`), attach the
    user guide link, and complete the listing content (descriptions, icons,

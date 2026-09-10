@@ -21,9 +21,10 @@ by your own tooling.
   docs/user-guide.md).
 - Optional: a **Cloud SQL for PostgreSQL** instance if you prefer an
   external database (`postgres.enabled=false`, `global.db.*`).
-- Optional: a **GCS bucket** + HMAC key for object storage
-  (`global.gcs.bucket`, `secrets.gcsHmac*`):
-  `gcloud storage hmac create <service-account-email>`.
+- Object storage: a **GCS bucket** + HMAC key (`global.gcs.bucket`,
+  `secrets.gcsHmac*`: `gcloud storage hmac create <service-account-email>`),
+  or `minio.enabled=true` for an evaluation-grade in-cluster store (the
+  `secrets.gcsHmac*` values then double as the MinIO root credentials).
 - An **OIDC application** at your identity provider (redirect URI:
   `<public URL>/oidc/callback`). Sign-in only works through it.
 - Your **TextQL deployment id and private key** (issued with your license).

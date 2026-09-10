@@ -1,7 +1,8 @@
-{{- if .Values.computeEngine.enabled }}
-{{/* Under a real `helm install` this runs as a pre-delete hook. Under the
-     Cloud Marketplace deployer (which expands the chart client-side) it is
-     applied at install time, finds nothing to delete, and completes. */}}
+{{- if and .Values.computeEngine.enabled .Values.sandboxPodCleaner.enabled }}
+{{/* pre-delete hook for CLI (helm) installs only: the Cloud Marketplace
+     deployer rejects charts with non-test helm hooks, so this defaults off.
+     Marketplace installs clean up leftover sandbox pods manually (see the
+     user guide's Deletion section). */}}
 apiVersion: batch/v1
 kind: Job
 metadata:

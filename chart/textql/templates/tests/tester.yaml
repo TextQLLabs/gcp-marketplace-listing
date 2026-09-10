@@ -45,5 +45,16 @@ spec:
           {{- if .Values.oathkeeper.enabled }}
           check "oathkeeper alive" "http://{{ .Release.Name }}-oathkeeper:4456/health/alive"
           {{- end }}
+          {{- if .Values.computeEngine.enabled }}
+          check "compute-engine ready" "http://{{ .Release.Name }}-compute-engine:5000/health/ready"
+          {{- end }}
+          {{- if .Values.ontology.enabled }}
+          check "ontology root" "http://{{ .Release.Name }}-ontology:3005/"
+          {{- end }}
+          {{- if .Values.minio.enabled }}
+          check "minio live" "http://{{ .Release.Name }}-minio:9000/minio/health/live"
+          {{- end }}
+          {{/* tableau-engine speaks Arrow Flight (no HTTP); its readiness is
+               covered by the deployer waiting on the Deployment's TCP probe */}}
           echo "All functionality tests passed."
 {{- end }}
