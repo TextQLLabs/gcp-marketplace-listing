@@ -176,17 +176,23 @@ credentials are managed in the identity provider, not in TextQL. Create an
 OIDC application (redirect URI `https://<your hostname>/oidc/callback`),
 generate the session JWT key pair, then:
 
+The session JWT keys are Ed25519, passed as base64 of the raw key bytes
+(private = 64-byte seed followed by public; public = 32 bytes). Generate
+them with OpenSSL 1.1.1+ (macOS LibreSSL does not support ed25519):
+
 ```sh
-openssl ecparam -genkey -name prime256v1 -noout -out jwt.key
-openssl ec -in jwt.key -pubout -out jwt.pub
+openssl genpkey -algorithm ed25519 -out jwt.pem
+JWT_PUB=$(openssl pkey -in jwt.pem -pubout -outform DER | tail -c 32 | base64)
+JWT_PRIV=$(cat <(openssl pkey -in jwt.pem -outform DER | tail -c 32) \
+               <(openssl pkey -in jwt.pem -pubout -outform DER | tail -c 32) | base64)
 
 helm upgrade "$NAME" ./chart/textql -n "$NAMESPACE" --reuse-values \
   --set global.auth.oidc.providerType="generic" \
   --set global.auth.oidc.issuerUrl="https://YOUR_ISSUER" \
   --set global.auth.oidc.clientId="CLIENT_ID" \
   --set secrets.oidcClientSecret="CLIENT_SECRET" \
-  --set-file secrets.authJwtPrivateKey=jwt.key \
-  --set-file secrets.authJwtPublicKey=jwt.pub
+  --set secrets.authJwtPrivateKey="$JWT_PRIV" \
+  --set secrets.authJwtPublicKey="$JWT_PUB"
 ```
 
 To rotate any generated password or key, run `helm upgrade --reuse-values`

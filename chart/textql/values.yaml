@@ -203,10 +203,10 @@ secrets:
   connectorEncryptionKey: ""
   # Shared secret between compute-engine and the Tableau engine.
   tableauInternalSecret: ""
-  # PEM EC P-256 key pair + key id for session JWTs. Optional at install
-  # time; sign-in does not work until they are set. Generate with:
-  #   openssl ecparam -genkey -name prime256v1 -noout -out jwt.key
-  #   openssl ec -in jwt.key -pubout -out jwt.pub
+  # Ed25519 key pair for session JWTs, base64 of the raw key bytes
+  # (private = 64-byte seed||public, public = 32 bytes). Optional at install
+  # time; sign-in does not work until they are set. Generate with OpenSSL
+  # 1.1.1+ (see SETUP.md) or request from TextQL.
   authJwtPrivateKey: ""
   authJwtPublicKey: ""
   authJwtKeyId: "k1"

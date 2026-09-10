@@ -44,7 +44,7 @@ deployer generates the random ones; CLI installs must set them:
 | `secrets.sandboxAuthKey` | `openssl rand -hex 32` |
 | `secrets.connectorEncryptionKey` | `openssl rand -hex 16` (chart derives `k1=<base64>`) |
 | `secrets.tableauInternalSecret` | `openssl rand -hex 16` |
-| `secrets.authJwtPrivateKey` / `authJwtPublicKey` | `openssl ecparam -genkey -name prime256v1 -noout -out jwt.key && openssl ec -in jwt.key -pubout -out jwt.pub` |
+| `secrets.authJwtPrivateKey` / `authJwtPublicKey` | Ed25519, base64 of raw key bytes (private = seed\|\|public, 64 bytes; public = 32 bytes). With OpenSSL 1.1.1+: `openssl genpkey -algorithm ed25519 -out jwt.pem`, then public: `openssl pkey -in jwt.pem -pubout -outform DER \| tail -c 32 \| base64`, private: `cat <(openssl pkey -in jwt.pem -outform DER \| tail -c 32) <(openssl pkey -in jwt.pem -pubout -outform DER \| tail -c 32) \| base64` |
 | `secrets.deploymentPrivateKey` | issued by TextQL |
 | `secrets.oidcClientSecret` | from your identity provider |
 | `secrets.gcsHmacAccessKey` / `gcsHmacSecretKey` | from step 1 |
