@@ -1,0 +1,218 @@
+x-google-marketplace:
+  schemaVersion: v2
+  applicationApiVersion: v1beta1
+  publishedVersion: "$TAG"
+  publishedVersionMetadata:
+    releaseNote: >-
+      Initial Google Cloud Marketplace release of TextQL.
+    releaseTypes:
+      - Feature
+    recommended: false
+  managedUpdates:
+    kalmSupported: false
+  clusterConstraints:
+    istio:
+      type: UNSUPPORTED
+    resources:
+      - replicas: 3
+        requests:
+          cpu: 500m
+          memory: 1Gi
+  deployerServiceAccount:
+    description: >-
+      Creates the application resources, including the namespaced Role and
+      RoleBinding that let the compute engine manage its sandbox worker pods,
+      the sandbox NetworkPolicy, and optional GKE Gateway routes.
+    roles:
+      - type: Role
+        rulesType: CUSTOM
+        rules:
+          - apiGroups: ['app.k8s.io']
+            resources: ['applications', 'applications/status']
+            verbs: ['*']
+          - apiGroups: ['']
+            resources: ['namespaces']
+            verbs: ['get']
+          - apiGroups: ['']
+            resources: ['pods/log']
+            verbs: ['get']
+          - apiGroups: ['']
+            resources: ['events']
+            verbs: ['get', 'list', 'watch']
+          - apiGroups: ['']
+            resources: ['services', 'serviceaccounts', 'secrets', 'configmaps', 'persistentvolumeclaims', 'pods']
+            verbs: ['*']
+          - apiGroups: ['apps']
+            resources: ['deployments']
+            verbs: ['*']
+          - apiGroups: ['batch']
+            resources: ['jobs']
+            verbs: ['*']
+          - apiGroups: ['rbac.authorization.k8s.io']
+            resources: ['roles', 'rolebindings']
+            verbs: ['*']
+          - apiGroups: ['networking.k8s.io']
+            resources: ['networkpolicies']
+            verbs: ['*']
+          - apiGroups: ['gateway.networking.k8s.io']
+            resources: ['gateways', 'httproutes']
+            verbs: ['*']
+          - apiGroups: ['networking.gke.io']
+            resources: ['healthcheckpolicies', 'gcpbackendpolicies']
+            verbs: ['*']
+          - apiGroups: ['metrics.k8s.io']
+            resources: ['pods']
+            verbs: ['get', 'list']
+  images:
+    tql-web:
+      properties:
+        images.web:
+          type: FULL
+    tql-compute-engine:
+      properties:
+        images.computeEngine:
+          type: FULL
+    tql-py-worker:
+      properties:
+        images.pyWorker:
+          type: FULL
+    tql-py-worker-dashboard:
+      properties:
+        images.pyWorkerDashboard:
+          type: FULL
+    tql-ontology:
+      properties:
+        images.ontology:
+          type: FULL
+    textableau:
+      properties:
+        images.textableau:
+          type: FULL
+    oathkeeper:
+      properties:
+        images.oathkeeper:
+          type: FULL
+    valkey:
+      properties:
+        images.valkey:
+          type: FULL
+    kubectl:
+      properties:
+        images.kubectl:
+          type: FULL
+    postgres:
+      properties:
+        images.postgres:
+          type: FULL
+
+properties:
+  name:
+    type: string
+    title: App instance name
+    x-google-marketplace:
+      type: NAME
+  namespace:
+    type: string
+    title: Namespace
+    x-google-marketplace:
+      type: NAMESPACE
+  web.publicApi:
+    type: string
+    title: Public URL
+    description: >-
+      Public URL the app is served on, e.g. https://textql.yourcompany.com.
+      Can be changed after install.
+    default: "https://textql.example.com"
+  global.hostname:
+    type: string
+    title: Hostname
+    description: >-
+      Hostname the app is served on (no scheme), e.g. textql.yourcompany.com.
+      Used for routing and CORS allowed origins.
+    default: "textql.example.com"
+  compute.deploymentId:
+    type: string
+    title: TextQL deployment id (BYOL)
+    description: >-
+      Deployment id issued by TextQL with your license. Leave empty to
+      configure later; AI features stay disabled until it is set.
+    default: ""
+  secrets.deploymentPrivateKey:
+    type: string
+    title: TextQL deployment private key (BYOL)
+    description: >-
+      PEM private key issued by TextQL, paired with the deployment id. Leave
+      empty to configure later.
+    default: ""
+  global.auth.oidc.issuerUrl:
+    type: string
+    title: OIDC issuer URL
+    description: >-
+      Issuer URL of your OIDC identity provider. Sign-in requires OIDC; it
+      can be configured after install.
+    default: ""
+  global.auth.oidc.clientId:
+    type: string
+    title: OIDC client id
+    default: ""
+  secrets.oidcClientSecret:
+    type: string
+    title: OIDC client secret
+    default: ""
+  global.auth.emailSenderAddress:
+    type: string
+    title: Outbound email from-address
+    default: "textql@example.com"
+  postgres.auth.password:
+    type: string
+    title: In-cluster PostgreSQL password
+    x-google-marketplace:
+      type: GENERATED_PASSWORD
+      generatedPassword:
+        length: 24
+        includeSymbols: false
+        base64: false
+  secrets.valkeyPassword:
+    type: string
+    x-google-marketplace:
+      type: GENERATED_PASSWORD
+      generatedPassword:
+        length: 32
+        includeSymbols: false
+        base64: false
+  secrets.internalKey:
+    type: string
+    x-google-marketplace:
+      type: GENERATED_PASSWORD
+      generatedPassword:
+        length: 32
+        includeSymbols: false
+        base64: false
+  secrets.sandboxAuthKey:
+    type: string
+    x-google-marketplace:
+      type: GENERATED_PASSWORD
+      generatedPassword:
+        length: 32
+        includeSymbols: false
+        base64: false
+  secrets.connectorEncryptionKey:
+    type: string
+    x-google-marketplace:
+      type: GENERATED_PASSWORD
+      generatedPassword:
+        length: 32
+        includeSymbols: false
+        base64: false
+  secrets.tableauInternalSecret:
+    type: string
+    x-google-marketplace:
+      type: GENERATED_PASSWORD
+      generatedPassword:
+        length: 32
+        includeSymbols: false
+        base64: false
+
+required:
+  - name
+  - namespace

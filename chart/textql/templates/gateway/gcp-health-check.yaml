@@ -1,0 +1,42 @@
+{{- if .Values.gateway.enabled }}
+apiVersion: networking.gke.io/v1
+kind: HealthCheckPolicy
+metadata:
+  name: {{ .Release.Name }}-web-lb-healthcheck
+  labels:
+    {{- include "tql.labels" . | nindent 4 }}
+spec:
+  default:
+    checkIntervalSec: 30
+    timeoutSec: 10
+    unhealthyThreshold: 5
+    config:
+      type: HTTP
+      httpHealthCheck:
+        requestPath: /api/health
+  targetRef:
+    group: ""
+    kind: Service
+    name: {{ .Release.Name }}-web
+---
+apiVersion: networking.gke.io/v1
+kind: HealthCheckPolicy
+metadata:
+  name: {{ .Release.Name }}-oathkeeper-lb-healthcheck
+  labels:
+    {{- include "tql.labels" . | nindent 4 }}
+spec:
+  default:
+    checkIntervalSec: 15
+    timeoutSec: 5
+    unhealthyThreshold: 3
+    config:
+      type: HTTP
+      httpHealthCheck:
+        port: 4456
+        requestPath: /health/alive
+  targetRef:
+    group: ""
+    kind: Service
+    name: {{ .Release.Name }}-oathkeeper
+{{- end }}

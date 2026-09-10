@@ -1,0 +1,65 @@
+TEXTQL COMMERCIAL LICENSE
+
+Copyright (c) 2026 TextQL, Inc. All rights reserved.
+
+This repository contains proprietary software and configuration of
+TextQL, Inc. ("TextQL"), including Helm charts, Kubernetes manifests,
+container build files, schemas, and documentation (collectively, the
+"Materials"). The Materials are licensed, not sold.
+
+1. LICENSE GRANT. Subject to a valid, written commercial agreement with
+   TextQL (including a bring-your-own-license (BYOL) subscription obtained
+   in connection with Google Cloud Marketplace), TextQL grants you a
+   limited, non-exclusive, non-transferable, non-sublicensable, revocable
+   license to use the Materials solely to deploy, configure, operate, and
+   maintain the TextQL software for your internal business purposes, on
+   infrastructure under your control, for the duration and scope of that
+   agreement.
+
+2. RESTRICTIONS. Except as expressly permitted in Section 1 or by prior
+   written consent of TextQL, you may not, and may not permit any third
+   party to:
+   (a) use the Materials or the TextQL software without a valid commercial
+       agreement with TextQL;
+   (b) copy, distribute, publish, sublicense, sell, rent, lease, or
+       otherwise make the Materials available to any third party;
+   (c) modify or create derivative works of the Materials, other than
+       configuration changes reasonably required to deploy the TextQL
+       software in your own environment;
+   (d) reverse engineer, decompile, or disassemble any TextQL container
+       image or binary, except to the extent such restriction is
+       prohibited by applicable law;
+   (e) remove or alter any proprietary notices in the Materials; or
+   (f) use the Materials to build, train, or improve a competing product
+       or service.
+
+3. OWNERSHIP. TextQL and its licensors retain all right, title, and
+   interest in and to the Materials and the TextQL software, including all
+   intellectual property rights. No rights are granted by implication,
+   estoppel, or otherwise.
+
+4. THIRD-PARTY COMPONENTS. The TextQL software references third-party
+   open-source components (for example PostgreSQL, Valkey, Ory Oathkeeper,
+   and kubectl images). Those components are licensed under their own
+   terms, which are not modified or superseded by this license.
+
+5. TERMINATION. This license terminates automatically upon breach of its
+   terms or upon expiry or termination of your commercial agreement with
+   TextQL. Upon termination you must stop using the Materials and destroy
+   all copies in your possession, except as required by law.
+
+6. NO WARRANTY. THE MATERIALS ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY
+   KIND, EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION WARRANTIES OF
+   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND
+   NON-INFRINGEMENT. YOUR COMMERCIAL AGREEMENT WITH TEXTQL MAY CONTAIN
+   SEPARATE WARRANTY TERMS FOR THE TEXTQL SOFTWARE.
+
+7. LIMITATION OF LIABILITY. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO
+   EVENT WILL TEXTQL BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL,
+   CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS, REVENUE,
+   DATA, OR USE, ARISING OUT OF OR RELATED TO THE MATERIALS, EVEN IF
+   ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+
+8. CONTACT. For licensing inquiries, contact support@textql.com.
+
+Any use of the Materials not expressly authorized above is prohibited.

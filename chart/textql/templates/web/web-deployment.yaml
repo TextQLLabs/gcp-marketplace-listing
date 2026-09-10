@@ -1,0 +1,109 @@
+{{- if .Values.web.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-web
+  labels:
+    {{- include "tql.labels" . | nindent 4 }}
+spec:
+  {{- $oidc := .Values.global.auth.oidc }}
+  replicas: {{ .Values.web.replicas }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      {{- include "tql.selectorLabels" (dict "ctx" . "app" "web") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "tql.selectorLabels" (dict "ctx" . "app" "web") | nindent 8 }}
+        {{- include "tql.scheduling.serviceTierLabel" . | nindent 8 }}
+        app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+      annotations:
+        {{- include "tql.podAnnotations" . | nindent 8 }}
+    spec:
+      {{- include "tql.podRuntime" . | nindent 6 }}
+      {{- include "tql.scheduling" (dict "app" "web") | nindent 6 }}
+      terminationGracePeriodSeconds: 180
+      serviceAccountName: {{ .Release.Name }}-web
+      containers:
+        - name: web
+          image: "{{ include "tql.image" (dict "ctx" . "key" "web" "name" "tql-web") }}"
+          resources:
+            requests:
+              memory: "800Mi"
+              cpu: "0.4"
+            limits:
+              memory: "2Gi"
+          env:
+            - name: PRIVATE_SANDBOX_ADDRESS
+              value: "http://{{ .Release.Name }}-compute-engine:5000"
+            - name: PUBLIC_API
+              value: "{{ .Values.web.publicApi }}"
+            - name: ORIGIN
+              value: "{{ .Values.web.publicApi }}"
+            - name: BODY_SIZE_LIMIT
+              value: "Infinity"
+            - name: SHUTDOWN_TIMEOUT
+              value: "170"
+            - name: PUBLIC_AWS_ENDPOINT
+              value: "https://storage.googleapis.com"
+            - name: PRIVATE_S3_REGION
+              value: "auto"
+            - name: PRIVATE_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-db-secrets
+                  key: database.url
+            - name: PRIVATE_USE_SECRET_MANAGER
+              value: "false"
+            - name: PRIVATE_SANDBOX_AUTH_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-service-auth-secrets
+                  key: sandbox-auth.key
+            - name: PRIVATE_AUTH_JWT_PUBLIC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-auth-secrets
+                  key: public.key
+            - name: PUBLIC_SINGLE_ORG_MODE
+              value: "false"
+            - name: PUBLIC_BRAND_NAME
+              value: "textql"
+            - name: PUBLIC_SINGLE_OIDC_TENANT
+              value: "true"
+            - name: PUBLIC_ENFORCE_AUTH
+              value: "true"
+            {{- with $oidc.providerType }}
+            - name: PUBLIC_OIDC_PROVIDER_TYPE
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with $oidc.issuerUrl }}
+            - name: PUBLIC_OIDC_ISSUER_URL
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with $oidc.clientId }}
+            - name: PUBLIC_OIDC_CLIENT_ID
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with $oidc.scopes }}
+            - name: PUBLIC_OIDC_SCOPES
+              value: {{ . | quote }}
+            {{- end }}
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 5
+            timeoutSeconds: 3
+            periodSeconds: 10
+            failureThreshold: 10
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+{{- end }}

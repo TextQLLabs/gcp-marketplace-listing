@@ -1,0 +1,57 @@
+apiVersion: app.k8s.io/v1beta1
+kind: Application
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    {{- include "tql.labels" . | nindent 4 }}
+  annotations:
+    kubernetes-engine.cloud.google.com/icon: {{ .Chart.Icon | quote }}
+    marketplace.cloud.google.com/deploy-info: '{"partner_id": "textql", "product_id": "textql", "partner_name": "TextQL"}'
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Release.Name | quote }}
+  componentKinds:
+    - group: apps
+      kind: Deployment
+    - group: ""
+      kind: Service
+    - group: ""
+      kind: ConfigMap
+    - group: ""
+      kind: Secret
+    - group: ""
+      kind: PersistentVolumeClaim
+    - group: ""
+      kind: ServiceAccount
+    - group: rbac.authorization.k8s.io
+      kind: Role
+    - group: rbac.authorization.k8s.io
+      kind: RoleBinding
+    - group: networking.k8s.io
+      kind: NetworkPolicy
+    - group: batch
+      kind: Job
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+  descriptor:
+    type: TextQL
+    version: {{ .Chart.AppVersion | quote }}
+    description: |-
+      Building the Ontology for LLMs to talk to Data, accurately and securely.
+      TextQL is a BYOL (bring your own license) commercial product: a license
+      and deployment credentials issued by TextQL are required for full
+      functionality. Contact support@textql.com.
+    links:
+      - description: Documentation
+        url: https://docs.textql.com
+      - description: User guide
+        url: https://github.com/TextQLLabs/gcp-marketplace-listing/blob/main/docs/user-guide.md
+    maintainers:
+      - name: TextQL
+        url: https://textql.com
+  info:
+    - name: Application URL
+      value: {{ .Values.web.publicApi | quote }}

@@ -1,0 +1,31 @@
+{{- if .Values.computeEngine.enabled }}
+{{/* Under a real `helm install` this runs as a pre-delete hook. Under the
+     Cloud Marketplace deployer (which expands the chart client-side) it is
+     applied at install time, finds nothing to delete, and completes. */}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-remove-sandbox-pods
+  labels:
+    {{- include "tql.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": pre-delete
+spec:
+  template:
+    metadata:
+      annotations:
+        {{- include "tql.podAnnotations" . | nindent 8 }}
+    spec:
+      {{- include "tql.podRuntime" . | nindent 6 }}
+      serviceAccountName: {{ .Release.Name }}-compute-engine
+      restartPolicy: Never
+      containers:
+        - name: cleanup
+          image: "{{ include "tql.image" (dict "ctx" . "key" "kubectl" "name" "kubectl") }}"
+          resources:
+            requests:
+              memory: "52Mi"
+              cpu: "50m"
+          command: [ "/bin/sh","-c" ]
+          args: [ "kubectl delete pod -l 'worker-type in (sandbox,dashboard)' && kubectl delete secret sandbox-proxy-worker-tokens --ignore-not-found" ]
+{{- end }}

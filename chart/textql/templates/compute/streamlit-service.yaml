@@ -1,0 +1,15 @@
+{{- if .Values.computeEngine.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-sandbox-proxy
+  labels:
+    {{- include "tql.labels" . | nindent 4 }}
+spec:
+  selector:
+    {{- include "tql.selectorLabels" (dict "ctx" . "app" "compute-engine") | nindent 4 }}
+  ports:
+    - port: 5000
+      targetPort: 5000
+  type: ClusterIP
+{{- end }}

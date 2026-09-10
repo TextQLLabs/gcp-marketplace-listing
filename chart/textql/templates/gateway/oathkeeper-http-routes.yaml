@@ -1,0 +1,96 @@
+{{- if .Values.gateway.enabled }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ .Release.Name }}-backend-oathkeeper
+  labels:
+    {{- include "tql.labels" . | nindent 4 }}
+spec:
+  parentRefs:
+    - name: {{ .Release.Name }}-gateway
+      {{- if .Values.global.loadBalancer.sslCertificate }}
+      sectionName: https
+      {{- end }}
+  hostnames:
+    {{- include "tql.hostnames" . | nindent 4 }}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /v1
+        - path:
+            type: PathPrefix
+            value: /v2
+        - path:
+            type: PathPrefix
+            value: /sandbox/proxy
+        - path:
+            type: PathPrefix
+            value: /library/raw
+        - path:
+            type: PathPrefix
+            value: /asset/proxy
+        - path:
+            type: PathPrefix
+            value: /asset/apptree
+        - path:
+            type: PathPrefix
+            value: /agent-avatar
+        - path:
+            type: PathPrefix
+            value: /scim/v2
+        - path:
+            type: PathPrefix
+            value: /api/v1/metrics
+        - path:
+            type: PathPrefix
+            value: /desktop/download
+        - path:
+            type: PathPrefix
+            value: /cli
+        - path:
+            type: PathPrefix
+            value: /mcp
+        - path:
+            type: PathPrefix
+            value: /oauth
+        - path:
+            type: Exact
+            value: /.well-known/oauth-authorization-server
+        - path:
+            type: PathPrefix
+            value: /.well-known/oauth-protected-resource
+        - path:
+            type: Exact
+            value: /.well-known/openid-configuration
+        - path:
+            type: PathPrefix
+            value: /rpc/public
+        - path:
+            type: PathPrefix
+            value: /oidc
+      backendRefs:
+        - name: {{ .Release.Name }}-oathkeeper
+          port: 4455
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /health
+      backendRefs:
+        - name: {{ .Release.Name }}-compute-engine
+          port: 5000
+    - matches:
+        - path:
+            type: Exact
+            value: /.well-known/jwks.json
+      backendRefs:
+        - name: {{ .Release.Name }}-compute-engine
+          port: 5000
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: {{ .Release.Name }}-oathkeeper
+          port: 4455
+{{- end }}

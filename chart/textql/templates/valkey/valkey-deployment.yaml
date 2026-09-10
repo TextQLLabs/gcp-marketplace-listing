@@ -1,0 +1,79 @@
+{{- if .Values.valkey.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-valkey
+  labels:
+    {{- include "tql.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "tql.selectorLabels" (dict "ctx" . "app" "valkey") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "tql.selectorLabels" (dict "ctx" . "app" "valkey") | nindent 8 }}
+        {{- include "tql.scheduling.serviceTierLabel" . | nindent 8 }}
+        app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+      annotations:
+        {{- include "tql.podAnnotations" . | nindent 8 }}
+    spec:
+      {{- include "tql.podRuntime" . | nindent 6 }}
+      {{- include "tql.scheduling" (dict "app" "valkey") | nindent 6 }}
+      terminationGracePeriodSeconds: 180
+      containers:
+        - name: valkey
+          image: "{{ include "tql.image" (dict "ctx" . "key" "valkey" "name" "valkey") }}"
+          resources:
+            requests:
+              memory: "2Gi"
+              cpu: "1"
+            limits:
+              memory: "2Gi"
+              cpu: "1"
+          command: [ "valkey-server" ]
+          env:
+            - name: VALKEY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-valkey-secrets
+                  key: password
+          args: [
+            "--save", "60", "1",
+            "--loglevel", "notice",
+            "--maxmemory", "1800mb",
+            "--maxmemory-policy", "volatile-lru",
+            "--requirepass", "$(VALKEY_PASSWORD)",
+          ]
+          ports:
+            - containerPort: 6379
+          volumeMounts:
+            - name: valkey-storage
+              mountPath: "/data"
+          startupProbe:
+            exec:
+              command:
+                - valkey-cli
+                - -a
+                - "$(VALKEY_PASSWORD)"
+                - ping
+            initialDelaySeconds: 3
+            failureThreshold: 15
+            periodSeconds: 3
+          readinessProbe:
+            exec:
+              command:
+                - valkey-cli
+                - -a
+                - "$(VALKEY_PASSWORD)"
+                - ping
+            periodSeconds: 10
+      volumes:
+        - name: valkey-storage
+          persistentVolumeClaim:
+            claimName: {{ .Release.Name }}-valkey-storage
+            readOnly: false
+{{- end }}

@@ -1,0 +1,75 @@
+{{- if .Values.tableau.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-tableau-engine
+  labels:
+    {{- include "tql.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "tql.selectorLabels" (dict "ctx" . "app" "tableau-engine") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "tql.selectorLabels" (dict "ctx" . "app" "tableau-engine") | nindent 8 }}
+        {{- include "tql.scheduling.serviceTierLabel" . | nindent 8 }}
+        app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+      annotations:
+        {{- include "tql.podAnnotations" . | nindent 8 }}
+    spec:
+      {{- include "tql.podRuntime" . | nindent 6 }}
+      {{- include "tql.scheduling" (dict "app" "tableau-engine") | nindent 6 }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: "OnRootMismatch"
+      terminationGracePeriodSeconds: 180
+      containers:
+        - name: tableau-engine
+          image: "{{ include "tql.image" (dict "ctx" . "key" "textableau" "name" "textableau") }}"
+          workingDir: "/app"
+          securityContext:
+            allowPrivilegeEscalation: false
+            seccompProfile:
+              type: RuntimeDefault
+            capabilities:
+              drop:
+                - ALL
+          env:
+            - name: PYTHONPATH
+              value: "/app"
+            - name: TABLEAU_INTERNAL_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-tableau-internal-secret
+                  key: secret
+                  optional: true
+          resources:
+            requests:
+              memory: "3Gi"
+              cpu: "1"
+            limits:
+              memory: "8Gi"
+          ports:
+            - containerPort: 8815
+          volumeMounts:
+            - name: tableau-cache
+              mountPath: "/app/volume"
+          startupProbe:
+            tcpSocket:
+              port: 8815
+            initialDelaySeconds: 3
+            failureThreshold: 15
+            periodSeconds: 3
+      volumes:
+        - name: tableau-cache
+          persistentVolumeClaim:
+            claimName: {{ .Release.Name }}-tableau-storage
+            readOnly: false
+{{- end }}

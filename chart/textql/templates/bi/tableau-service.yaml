@@ -1,0 +1,15 @@
+{{- if .Values.tableau.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-tableau-engine
+  labels:
+    {{- include "tql.labels" . | nindent 4 }}
+spec:
+  selector:
+    {{- include "tql.selectorLabels" (dict "ctx" . "app" "tableau-engine") | nindent 4 }}
+  ports:
+    - port: 8815
+      targetPort: 8815
+  type: ClusterIP
+{{- end }}

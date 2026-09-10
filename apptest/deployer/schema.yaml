@@ -1,0 +1,30 @@
+# Verification overlay: merged over /data/schema.yaml when the app runs in
+# the Marketplace Verification system (mpdev verify). Trims the deployment to
+# the minimal healthy footprint and enables the functionality tests: a
+# database migration Job against the in-cluster PostgreSQL, and a tester Pod
+# that probes the web and oathkeeper health endpoints.
+properties:
+  computeEngine.enabled:
+    type: boolean
+    default: false
+  ontology.enabled:
+    type: boolean
+    default: false
+  tableau.enabled:
+    type: boolean
+    default: false
+  web.replicas:
+    type: integer
+    default: 1
+  oathkeeper.replicas:
+    type: integer
+    default: 1
+  migrationJob.enabled:
+    type: boolean
+    default: true
+  apptest.enabled:
+    type: boolean
+    default: true
+  images.tester:
+    type: string
+    default: "$REGISTRY/tester:$TAG"
