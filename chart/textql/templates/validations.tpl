@@ -11,6 +11,9 @@
 {{- if not .Values.web.publicApi }}
   {{- fail "web.publicApi is required" }}
 {{- end }}
+{{- if and .Values.computeEngine.enabled (eq $mode "values") (not .Values.secrets.sandboxProxyCaKey) }}
+  {{- fail "secrets.sandboxProxyCaKey (base64 PEM) is required when computeEngine.enabled: compute-engine cannot launch sandbox workers without the proxy CA key (see SETUP.md; the Marketplace deployer generates it)" }}
+{{- end }}
 {{- if and .Values.sandbox.filestore.enabled (not .Values.compute.gke.filestoreNetwork) }}
   {{- fail "compute.gke.filestoreNetwork is required when sandbox.filestore.enabled: set it to the VPC network your GKE cluster's subnet belongs to" }}
 {{- end }}

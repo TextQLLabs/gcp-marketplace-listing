@@ -1,8 +1,12 @@
 {{- if .Values.computeEngine.enabled }}
+{{/* The Deployment name is fixed: compute-engine looks up its own
+     Deployment by exactly this name at startup for the owner reference it
+     puts on spawned sandbox worker pods (compiled into the image), so it
+     cannot carry the release prefix. One instance per namespace. */}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Release.Name }}-compute-engine
+  name: compute-engine
   labels:
     {{- include "tql.labels" . | nindent 4 }}
 spec:
@@ -225,7 +229,7 @@ spec:
             - name: SINGLE_ORG_MODE
               value: "false"
             - name: SINGLE_OIDC_TENANT
-              value: "true"
+              value: {{ include "tql.singleOidcTenant" . | quote }}
             {{- with $oidc.providerType }}
             - name: OIDC_PROVIDER_TYPE
               value: {{ . | quote }}

@@ -40,6 +40,9 @@ properties:
   minio.enabled:
     type: boolean
     default: true
+  sandbox.rwoPvc.enabled:
+    type: boolean
+    default: true
   apptest.enabled:
     type: boolean
     default: true

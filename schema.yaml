@@ -167,6 +167,19 @@ properties:
     type: string
     title: Outbound email from-address
     default: "textql@example.com"
+  sandboxProxyCa:
+    type: string
+    title: Sandbox proxy CA (generated)
+    description: >-
+      Self-signed CA the compute engine uses to mint sandbox worker proxy
+      tokens; required for the service to start. Auto-generated. Production
+      installs may replace it with their own CA (see the user guide).
+    x-google-marketplace:
+      type: TLS_CERTIFICATE
+      tlsCertificate:
+        generatedProperties:
+          base64EncodedPrivateKey: secrets.sandboxProxyCaKey
+          base64EncodedCertificate: global.sandboxProxy.caCert
   minio.enabled:
     type: boolean
     title: Deploy evaluation object storage (MinIO)

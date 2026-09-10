@@ -21,6 +21,18 @@ nodeSelector:
 sidecar.istio.io/inject: "false"
 {{- end -}}
 
+{{/* Single-tenant OIDC mode is only safe once OIDC is configured:
+     compute-engine refuses to boot with SINGLE_OIDC_TENANT=true and no
+     issuer/client id/client secret. Until then the app runs with OIDC
+     single-tenant off (nobody can sign in, but every pod is healthy). */}}
+{{- define "tql.singleOidcTenant" -}}
+{{- if and .Values.global.auth.oidc.issuerUrl .Values.global.auth.oidc.clientId -}}
+true
+{{- else -}}
+false
+{{- end -}}
+{{- end -}}
+
 {{/* Hostnames list; global.hostname (scalar, settable from the Marketplace
      UI) wins over global.hostnames when set. */}}
 {{- define "tql.hostnames" -}}

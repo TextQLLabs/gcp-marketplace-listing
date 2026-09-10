@@ -12,6 +12,12 @@ instruction for each sentence.
    `kubernetes-gcp-mp` chart from the `sergi/gcp-marketplace` branch, with
    these changes:
    - Each resource name starts with the release name. Google requires this.
+     Three names cannot: `compute-engine` (the Deployment; compute-engine
+     looks up its own Deployment by that name for worker owner references),
+     `sandbox-files-pvc`, and `sandbox-proxy-ca-cert` (sandbox worker pods
+     reference both by name). These names are compiled into the compute
+     image, so only one app instance can run per namespace. Tell Google's
+     reviewers this if they ask.
    - Each image reference is a parameter (`images.*`). Google requires this.
    - All images of one release use one version tag (`1.3.20`) and one track
      tag (`1.3`). Google requires this.
@@ -50,22 +56,30 @@ instruction for each sentence.
    throwaway generated ed25519 deployment key: it parses them locally at
    startup, so the service is healthy; only real LLM calls would fail.
    `mpdev verify` result: see the bottom of this file.
-5. **In-cluster S3 (MinIO).** `minio.enabled` deploys a single-node MinIO
+5. **Sandbox proxy CA.** compute-engine refuses to start without
+   `SANDBOX_PROXY_CA_KEY` (it launches at least one sandbox worker at boot
+   and must mint its proxy token). The deployer schema generates a
+   self-signed CA at deploy time (`TLS_CERTIFICATE` type), so UI installs
+   and verification always boot. CLI installs generate their own (the user
+   guide has the command). Verification also creates a small ReadWriteOnce
+   PVC named `sandbox-files-pvc` (`sandbox.rwoPvc.enabled`) so the one
+   pre-spawned worker can run without Filestore.
+6. **In-cluster S3 (MinIO).** `minio.enabled` deploys a single-node MinIO
    and points compute-engine and web at it. This works because the
    compute-engine S3 client always uses path-style addressing and takes its
    endpoint from `AWS_ENDPOINT`. The bucket is created automatically. It is
    for evaluation and verification; production installs should use a GCS
    bucket.
-6. **Third-party images.** `valkey`, `kubectl`, `postgres`, `minio`, and
+7. **Third-party images.** `valkey`, `kubectl`, `postgres`, `minio`, and
    `tester` are mirrored to `us-docker.pkg.dev/textql-public/textql/*` at
    tags `1.3.20` and `1.3` (`make mirror-third-party`).
-7. **Image annotations.** The mirrored images and the deployer have the
+8. **Image annotations.** The mirrored images and the deployer have the
    `com.googleapis.cloudmarketplace.product.service.name` annotation
    (`make annotate`). The first-party images got it from
    `scripts/gcp-marketplace-ar-push.sh` in the main repository.
-8. **License** (`LICENSE`). A restrictive commercial license. It does not
+9. **License** (`LICENSE`). A restrictive commercial license. It does not
    permit unauthorized use.
-9. **User guide** (`docs/user-guide.md`). It has all sections that Google
+10. **User guide** (`docs/user-guide.md`). It has all sections that Google
    requires: overview, one-time setup, installation, usage, backup and
    restore, image updates, scaling, and deletion.
 
@@ -121,12 +135,16 @@ instruction for each sentence.
 
 `mpdev verify --deployer=us-docker.pkg.dev/textql-public/textql/deployer:1.3.20`
 against cluster `gke-autopilot-marketplace` (project `textql-public`),
-2026-09-10: **PASSED**.
+2026-09-10: **PASSED**, with the full stack.
 
-The run did these steps: it created a test namespace, deployed the app,
-waited until PostgreSQL, Valkey, web, and oathkeeper were healthy, ran the
-database migration Job (468+ real migrations against the in-cluster
-PostgreSQL), ran the tester Pod (web `/api/health` and oathkeeper
-`/health/alive` returned success), and removed the app and the namespace.
+The run did these steps: it created a test namespace and deployed
+PostgreSQL, Valkey, MinIO, compute-engine, ontology, tableau-engine, web,
+and oathkeeper. The compute-engine init container applied all 673 database
+migrations. compute-engine started with the generated sandbox proxy CA and
+the placeholder deployment credentials, spawned one sandbox worker pod, and
+the worker reached Running with the `sandbox-files-pvc` volume Bound. The
+tester Pod then passed all five checks: web `/api/health`, oathkeeper
+`/health/alive`, compute-engine `/health/ready`, ontology `/`, and MinIO
+`/minio/health/live`. Uninstall removed the app and the namespace.
 
 To run it again: `make verify`.

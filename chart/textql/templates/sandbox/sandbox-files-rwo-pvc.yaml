@@ -1,0 +1,16 @@
+{{- if and .Values.computeEngine.enabled .Values.sandbox.rwoPvc.enabled (not .Values.sandbox.filestore.enabled) }}
+{{/* Same fixed name as the Filestore variant: sandbox worker pods reference
+     this claim by exactly this name (compiled into the compute image). */}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sandbox-files-pvc
+  labels:
+    {{- include "tql.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.sandbox.rwoPvc.size | quote }}
+{{- end }}

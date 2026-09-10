@@ -82,7 +82,7 @@ spec:
             - name: PUBLIC_BRAND_NAME
               value: "textql"
             - name: PUBLIC_SINGLE_OIDC_TENANT
-              value: "true"
+              value: {{ include "tql.singleOidcTenant" . | quote }}
             - name: PUBLIC_ENFORCE_AUTH
               value: "true"
             {{- with $oidc.providerType }}

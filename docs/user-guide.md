@@ -89,6 +89,13 @@ NAME=textql
 NAMESPACE=textql
 kubectl create namespace "$NAMESPACE"
 
+# Sandbox proxy CA (compute-engine requires it to launch sandbox workers;
+# the Marketplace UI generates it automatically)
+openssl req -x509 -newkey rsa:2048 -nodes \
+  -keyout ca.key -out ca.crt -days 3650 -subj "/CN=TextQL Sandbox Proxy CA" \
+  -addext "basicConstraints=critical,CA:TRUE" \
+  -addext "keyUsage=critical,keyCertSign,cRLSign"
+
 helm install "$NAME" ./chart/textql \
   --namespace "$NAMESPACE" \
   --set web.publicApi="https://textql.yourcompany.com" \
@@ -98,7 +105,9 @@ helm install "$NAME" ./chart/textql \
   --set secrets.internalKey="$(openssl rand -hex 32)" \
   --set secrets.sandboxAuthKey="$(openssl rand -hex 32)" \
   --set secrets.connectorEncryptionKey="$(openssl rand -hex 16)" \
-  --set secrets.tableauInternalSecret="$(openssl rand -hex 16)"
+  --set secrets.tableauInternalSecret="$(openssl rand -hex 16)" \
+  --set global.sandboxProxy.caCert="$(base64 < ca.crt | tr -d '\n')" \
+  --set secrets.sandboxProxyCaKey="$(base64 < ca.key | tr -d '\n')"
 ```
 
 The chart renders entirely client-side (it also works with

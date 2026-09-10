@@ -181,6 +181,14 @@ compute:
     filestoreNetwork: ""
 
 sandbox:
+  # Evaluation-grade single-node sandbox storage: a ReadWriteOnce PVC named
+  # sandbox-files-pvc so spawned sandbox workers can run without Filestore.
+  # Workers all land on one node and do not share files with compute-engine,
+  # so this is for evaluation and verification only — production uses
+  # filestore below. Ignored when filestore is enabled.
+  rwoPvc:
+    enabled: false
+    size: "10Gi"
   # Filestore-backed shared storage for sandbox workers. Requires the
   # Filestore CSI driver and permission to create a StorageClass
   # (cluster-scoped), so it is off by default: Marketplace UI installs run
@@ -243,8 +251,11 @@ secrets:
   # the MinIO root user and password instead.
   gcsHmacAccessKey: ""
   gcsHmacSecretKey: ""
-  # PEM private key of the sandbox egress proxy CA (pairs with
-  # global.sandboxProxy.caCert).
+  # base64-encoded PEM private key of the sandbox egress proxy CA (pairs
+  # with global.sandboxProxy.caCert). (required when computeEngine.enabled)
+  # — compute-engine refuses to launch sandbox workers without it. The
+  # Marketplace deployer generates a self-signed CA; CLI installs generate
+  # one with the command in SETUP.md.
   sandboxProxyCaKey: ""
 
 # pre-delete helm hook Job that removes dynamically created sandbox worker
