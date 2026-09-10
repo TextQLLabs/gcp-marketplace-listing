@@ -99,5 +99,14 @@ instruction for each sentence.
 
 ## Verification result
 
-`mpdev verify` against cluster `gke-autopilot-marketplace` (project
-`textql-public`): PENDING — see final line of the session summary.
+`mpdev verify --deployer=us-docker.pkg.dev/textql-public/textql/deployer:1.3.20`
+against cluster `gke-autopilot-marketplace` (project `textql-public`),
+2026-09-10: **PASSED**.
+
+The run did these steps: it created a test namespace, deployed the app,
+waited until PostgreSQL, Valkey, web, and oathkeeper were healthy, ran the
+database migration Job (468+ real migrations against the in-cluster
+PostgreSQL), ran the tester Pod (web `/api/health` and oathkeeper
+`/health/alive` returned success), and removed the app and the namespace.
+
+To run it again: `make verify`.
