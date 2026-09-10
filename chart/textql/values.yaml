@@ -144,8 +144,10 @@ postgres:
     storageClassName: ""
 
 compute:
-  # TextQL deployment id, issued with your license (BYOL). AI features stay
-  # disabled until it is set.
+  # (required) TextQL deployment id, issued with your license (BYOL).
+  # compute-engine refuses to start without one; for evaluation any UUID
+  # works, paired with a generated key in secrets.deploymentPrivateKey. AI
+  # features need the real credentials.
   deploymentId: ""
   # Outbound email over SMTP. Empty host = outbound email disabled.
   smtp:
@@ -210,8 +212,8 @@ secrets:
   authJwtPrivateKey: ""
   authJwtPublicKey: ""
   authJwtKeyId: "k1"
-  # Deployment private key issued by TextQL (pairs with
-  # compute.deploymentId).
+  # (required) Deployment private key (base64 ed25519), issued by TextQL
+  # with the deployment id — or a generated throwaway one for evaluation.
   deploymentPrivateKey: ""
   # Client secret of the OIDC application.
   oidcClientSecret: ""

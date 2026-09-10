@@ -43,12 +43,6 @@ properties:
   images.tester:
     type: string
     default: "$REGISTRY/tester:$TAG"
-  compute.deploymentId:
-    type: string
-    default: "6b1de52e-1c0f-4e63-9d4e-6a4b1f2c3d4e"
-  secrets.deploymentPrivateKey:
-    type: string
-    default: "dywlUmNJUoUNclngMPTxOtyq+aGyMd2Bpqf7YA/GbvKijMRHHEDx3SNOFeha9cNPUsAk7b7qu2TsNBWXdNEuug=="
   secrets.authJwtPrivateKey:
     type: string
     default: "Mxfw+Yw2fXDuvWl0GOEVo1yJUXe25kOLAohKydLtuPZYGPKXlD/7bl0b8K2eFgwPyOvnX8t9BXLa5PSTozGnDA=="

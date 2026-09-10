@@ -138,16 +138,17 @@ properties:
     type: string
     title: TextQL deployment id (BYOL)
     description: >-
-      Deployment id issued by TextQL with your license. Leave empty to
-      configure later; AI features stay disabled until it is set.
-    default: ""
+      Deployment id issued by TextQL with your license. The default is a
+      placeholder that lets the app start; AI features stay disabled until
+      you replace it with your real id.
+    default: "00000000-0000-4000-8000-000000000000"
   secrets.deploymentPrivateKey:
     type: string
     title: TextQL deployment private key (BYOL)
     description: >-
-      PEM private key issued by TextQL, paired with the deployment id. Leave
-      empty to configure later.
-    default: ""
+      Deployment key issued by TextQL (base64 ed25519), paired with the
+      deployment id. The default is a placeholder that lets the app start.
+    default: "V0HhIo73K5nfvuoZQ+dD1RNE3L3CZTD2X7swW+TEGyDA9MYXxpXRjufyszvpID2ZQwqlYI8aCytBDEBgaMrDug=="
   global.auth.oidc.issuerUrl:
     type: string
     title: OIDC issuer URL

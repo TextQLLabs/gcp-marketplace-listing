@@ -91,16 +91,21 @@ NAME=textql
 NAMESPACE=textql
 kubectl create namespace "$NAMESPACE"
 
-# Ed25519 session-JWT key pair (raw bytes, base64). macOS LibreSSL cannot
-# generate ed25519; this uses python instead.
-read -r JWT_PRIV JWT_PUB <<< "$(python3 -c '
+# Ed25519 keys, base64 of the raw bytes: a session-JWT pair, plus a
+# throwaway deployment key so compute-engine can start (AI features need
+# real TextQL credentials). macOS LibreSSL cannot generate ed25519; this
+# uses python instead.
+read -r JWT_PRIV JWT_PUB DEPLOY_KEY <<< "$(python3 -c '
 import base64
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives import serialization as s
-k = Ed25519PrivateKey.generate()
-seed = k.private_bytes(s.Encoding.Raw, s.PrivateFormat.Raw, s.NoEncryption())
-pub = k.public_key().public_bytes(s.Encoding.Raw, s.PublicFormat.Raw)
-print(base64.b64encode(seed + pub).decode(), base64.b64encode(pub).decode())')"
+def gen():
+    k = Ed25519PrivateKey.generate()
+    seed = k.private_bytes(s.Encoding.Raw, s.PrivateFormat.Raw, s.NoEncryption())
+    pub = k.public_key().public_bytes(s.Encoding.Raw, s.PublicFormat.Raw)
+    return base64.b64encode(seed + pub).decode(), base64.b64encode(pub).decode()
+jp, jpub = gen(); dp, _ = gen()
+print(jp, jpub, dp)')"
 
 # Sandbox proxy CA (required for compute-engine to launch workers)
 openssl req -x509 -newkey rsa:2048 -nodes -keyout ca.key -out ca.crt \
@@ -119,6 +124,8 @@ helm install "$NAME" ./chart/textql -n "$NAMESPACE" \
   --set secrets.authJwtPublicKey="$JWT_PUB" \
   --set global.sandboxProxy.caCert="$(base64 < ca.crt | tr -d '\n')" \
   --set secrets.sandboxProxyCaKey="$(base64 < ca.key | tr -d '\n')" \
+  --set compute.deploymentId="00000000-0000-4000-8000-000000000000" \
+  --set secrets.deploymentPrivateKey="$DEPLOY_KEY" \
   --set sandbox.rwoPvc.enabled=true
 
 make health NAMESPACE="$NAMESPACE"    # or watch it in k9s
