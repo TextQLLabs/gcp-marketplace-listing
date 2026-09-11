@@ -4,9 +4,11 @@ The Kubernetes app package behind the TextQL listing on Google Cloud
 Marketplace: Helm chart, deployment container (deployer), deployer schema,
 verification tests, and user guide.
 
-TextQL is a commercial, BYOL (bring your own license) product — see
-[LICENSE](LICENSE). A license and deployment credentials issued by TextQL
-are required for AI functionality; contact support@textql.com.
+This repository (chart, manifests, schemas, docs) is licensed under
+[Apache 2.0](LICENSE). TextQL itself is a commercial, BYOL (bring your own
+license) product: the container images the chart deploys are proprietary,
+and a license plus deployment credentials issued by TextQL are required
+for AI functionality. Contact support@textql.com.
 
 ## Layout
 
