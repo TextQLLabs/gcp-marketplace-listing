@@ -28,6 +28,8 @@ spec:
       {{- include "tql.scheduling" (dict "app" "ontology") | nindent 6 }}
       terminationGracePeriodSeconds: 180
       serviceAccountName: {{ .Release.Name }}-ontology
+      initContainers:
+        {{- include "tql.waitForDb" . | nindent 8 }}
       containers:
         - name: ontology
           image: "{{ include "tql.image" (dict "ctx" . "key" "ontology" "name" "tql-ontology") }}"

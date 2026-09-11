@@ -16,6 +16,8 @@ spec:
     spec:
       {{- include "tql.podRuntime" . | nindent 6 }}
       restartPolicy: OnFailure
+      initContainers:
+        {{- include "tql.waitForDb" . | nindent 8 }}
       containers:
         - name: migrate
           image: "{{ include "tql.image" (dict "ctx" . "key" "computeEngine" "name" "") }}"

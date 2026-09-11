@@ -36,6 +36,7 @@ spec:
       terminationGracePeriodSeconds: 300
       serviceAccountName: {{ .Release.Name }}-compute-engine
       initContainers:
+        {{- include "tql.waitForDb" . | nindent 8 }}
         - name: migrate
           image: "{{ $computeImage }}"
           command: ["app", "migrate", "up"]
