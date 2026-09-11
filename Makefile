@@ -13,11 +13,6 @@ PLATFORM ?= linux/amd64
 KUBE_CONTEXT ?= gke_textql-public_us-central1_gke-autopilot-marketplace
 NAMESPACE    ?= textql
 
-# First-party images built by the main repo's release pipeline and pushed
-# to the flat staging path; sync-first-party copies them under REGISTRY.
-UPSTREAM = us-docker.pkg.dev/textql-public/textql
-FIRST_PARTY = tql-web tql-py-worker tql-py-worker-dashboard tql-ontology textableau oathkeeper
-
 # Third-party images mirrored so a release is fully self-contained.
 MIRROR_SPECS = \
 	valkey=docker.io/valkey/valkey:8.1-alpine \
@@ -31,7 +26,7 @@ MIRROR_SPECS = \
 SERVICE_NAME_ANNOTATION = com.googleapis.cloudmarketplace.product.service.name=services/textql-byoc-byol.endpoints.textql-public.cloud.goog
 ANNOTATE_IMAGES = tql-web tql-py-worker tql-py-worker-dashboard tql-ontology textableau oathkeeper valkey kubectl postgres minio tester deployer
 
-.PHONY: deployer push-deployer sync-first-party mirror-third-party annotate app-crd verify health
+.PHONY: deployer push-deployer mirror-third-party annotate app-crd verify health
 
 deployer:
 	docker build --platform $(PLATFORM) \
@@ -44,19 +39,6 @@ deployer:
 push-deployer: deployer
 	docker push $(REGISTRY)/deployer:$(TAG)
 	docker push $(REGISTRY)/deployer:$(TRACK)
-
-# Server-side copies from the flat staging path into the product layout.
-# The main app image (compute engine) lands at REGISTRY itself. Requires
-# gcrane (go install github.com/google/go-containerregistry/cmd/gcrane@latest).
-sync-first-party:
-	@for tag in $(TAG) $(TRACK); do \
-	  echo "==> $(UPSTREAM)/tql-compute-engine:$$tag -> $(REGISTRY):$$tag"; \
-	  gcrane cp $(UPSTREAM)/tql-compute-engine:$$tag $(REGISTRY):$$tag >/dev/null || exit 1; \
-	  for img in $(FIRST_PARTY); do \
-	    echo "==> $(UPSTREAM)/$$img:$$tag -> $(REGISTRY)/$$img:$$tag"; \
-	    gcrane cp $(UPSTREAM)/$$img:$$tag $(REGISTRY)/$$img:$$tag >/dev/null || exit 1; \
-	  done; \
-	done
 
 mirror-third-party:
 	@for spec in $(MIRROR_SPECS); do \
