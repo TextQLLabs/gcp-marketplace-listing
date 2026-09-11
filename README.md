@@ -39,17 +39,16 @@ track tag (`1.3`), plus the product service-name annotation.
 
 ```sh
 make app-crd              # once per cluster: the Application CRD
-make sync-first-party     # copy first-party images into the product path
 make mirror-third-party   # valkey, kubectl, postgres, minio, tester
 make push-deployer        # build and push the deployer
 make annotate             # stamp the service-name annotation on everything
 make verify               # Marketplace verification (install -> tests -> uninstall)
 ```
 
-Defaults: `TAG=1.3.20`, `TRACK=1.3`. Override per invocation, e.g.
-`make push-deployer TAG=1.3.21`. First-party images reach the flat staging
-path via `scripts/gcp-marketplace-ar-push.sh` in the main TextQL repo;
-`sync-first-party` copies them from there.
+Defaults: `TAG=1.3.21`, `TRACK=1.3`. Override per invocation, e.g.
+`make push-deployer TAG=1.3.22`. First-party images land directly in the
+product layout via `scripts/gcp-marketplace-ar-push.sh` in the main TextQL
+repo (compute engine at the root, the rest in folders).
 
 `make health NAMESPACE=<ns>` summarizes an installed release: rollouts,
 pods, volumes, and recent warnings.
