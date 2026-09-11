@@ -32,6 +32,7 @@ spec:
       containers:
         - name: web
           image: "{{ include "tql.image" (dict "ctx" . "key" "web" "name" "tql-web") }}"
+          imagePullPolicy: Always
           resources:
             requests:
               memory: "800Mi"

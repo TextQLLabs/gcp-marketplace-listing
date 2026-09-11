@@ -16,15 +16,14 @@ NAMESPACE    ?= textql
 # Third-party images mirrored so a release is fully self-contained.
 MIRROR_SPECS = \
 	valkey=docker.io/valkey/valkey:8.1-alpine \
-	kubectl=docker.io/bitnamilegacy/kubectl:1.33 \
 	postgres=docker.io/pgvector/pgvector:pg17 \
-	minio=docker.io/bitnamilegacy/minio:latest \
+	minio=quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z.hotfix.7aa24e772 \
 	tester=docker.io/curlimages/curl:8.11.1
 
 # Product service name from Producer Portal; stamped on every image
 # manifest (required by Marketplace).
 SERVICE_NAME_ANNOTATION = com.googleapis.cloudmarketplace.product.service.name=services/textql-byoc-byol.endpoints.textql-public.cloud.goog
-ANNOTATE_IMAGES = tql-web tql-py-worker tql-py-worker-dashboard tql-ontology textableau oathkeeper valkey kubectl postgres minio tester deployer
+ANNOTATE_IMAGES = tql-web tql-py-worker tql-py-worker-dashboard tql-ontology textableau oathkeeper valkey postgres minio tester deployer
 
 .PHONY: deployer push-deployer mirror-third-party annotate app-crd verify health
 

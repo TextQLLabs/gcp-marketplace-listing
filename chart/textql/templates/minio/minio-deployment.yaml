@@ -22,16 +22,34 @@ spec:
         {{- include "tql.podAnnotations" . | nindent 8 }}
     spec:
       {{- include "tql.podRuntime" . | nindent 6 }}
-      # bitnami images need root-group-writable paths, hence gid 0
       securityContext:
         runAsNonRoot: true
-        runAsUser: 1001
-        runAsGroup: 0
-        fsGroup: 0
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
       terminationGracePeriodSeconds: 60
+      initContainers:
+        # a top-level directory in the data path is a bucket in MinIO's
+        # filesystem mode
+        - name: make-bucket
+          image: "{{ include "tql.image" (dict "ctx" . "key" "minio" "name" "minio") }}"
+          imagePullPolicy: Always
+          command: ["sh", "-c", "mkdir -p /data/{{ .Values.minio.bucket }}"]
+          volumeMounts:
+            - name: minio-data
+              mountPath: /data
+          resources:
+            requests:
+              memory: "32Mi"
+              cpu: "20m"
+            limits:
+              memory: "64Mi"
       containers:
         - name: minio
           image: "{{ include "tql.image" (dict "ctx" . "key" "minio" "name" "minio") }}"
+          # Always: node tag caches must never resurrect a previous image
+          imagePullPolicy: Always
+          args: ["server", "/data", "--address", ":9000"]
           env:
             - name: MINIO_ROOT_USER
               valueFrom:
@@ -43,8 +61,6 @@ spec:
                 secretKeyRef:
                   name: {{ .Release.Name }}-gcs-secrets
                   key: hmac.secretKey
-            - name: MINIO_DEFAULT_BUCKETS
-              value: {{ .Values.minio.bucket | quote }}
           ports:
             - containerPort: 9000
               name: api
@@ -65,7 +81,7 @@ spec:
               cpu: "1"
           volumeMounts:
             - name: minio-data
-              mountPath: /bitnami/minio/data
+              mountPath: /data
       volumes:
         - name: minio-data
           persistentVolumeClaim:

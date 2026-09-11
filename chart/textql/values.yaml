@@ -92,7 +92,6 @@ images:
   textableau: ""
   oathkeeper: ""
   valkey: ""
-  kubectl: ""
   postgres: ""
   minio: ""
   tester: ""
@@ -235,12 +234,6 @@ secrets:
 # KUBERNETES_* name-override env vars; set false when running older images.
 prefixedNames:
   enabled: true
-
-# pre-delete hook that cleans up dynamically created sandbox pods on
-# uninstall. CLI installs only — the Marketplace deployer rejects charts
-# with non-test helm hooks.
-sandboxPodCleaner:
-  enabled: false
 
 # One-shot migration Job. Normally unnecessary (compute-engine migrates in
 # an init container); kept for running migrations standalone.

@@ -96,10 +96,6 @@ x-google-marketplace:
       properties:
         images.valkey:
           type: FULL
-    kubectl:
-      properties:
-        images.kubectl:
-          type: FULL
     postgres:
       properties:
         images.postgres:
