@@ -1,0 +1,15 @@
+{{- if .Values.valkey.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-valkey
+  labels:
+    {{- include "tql.labels" . | nindent 4 }}
+spec:
+  selector:
+    {{- include "tql.selectorLabels" (dict "ctx" . "app" "valkey") | nindent 4 }}
+  ports:
+    - port: 6379
+      targetPort: 6379
+  type: ClusterIP
+{{- end }}

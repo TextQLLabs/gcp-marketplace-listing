@@ -1,0 +1,16 @@
+{{- if .Values.computeEngine.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-compute-engine
+  labels:
+    {{- include "tql.labels" . | nindent 4 }}
+spec:
+  selector:
+    {{- include "tql.selectorLabels" (dict "ctx" . "app" "compute-engine") | nindent 4 }}
+  ports:
+    - name: api
+      port: 5000
+      targetPort: 5000
+  type: ClusterIP
+{{- end }}

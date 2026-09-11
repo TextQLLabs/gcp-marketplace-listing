@@ -1,0 +1,54 @@
+# Verification overlay (/data-test), merged over /data/schema.yaml when the
+# app runs in the Marketplace Verification system. Runs the full stack at
+# single-replica scale and enables the tester Pod.
+#
+# Worker pool minimums stay at the enforced floor of 1; the RWO PVC lets
+# that one pre-spawned worker run without Filestore. The deployment
+# credentials and JWT key pair below are throwaway values generated for
+# this overlay so the services can boot — they are not usable credentials.
+properties:
+  web.replicas:
+    type: integer
+    default: 1
+  oathkeeper.replicas:
+    type: integer
+    default: 1
+  computeEngine.replicas:
+    type: integer
+    default: 1
+  computeEngine.poolSize:
+    type: string
+    default: "8"
+  computeEngine.minWorkersAvailable.hard:
+    type: integer
+    default: 0
+  computeEngine.minWorkersAvailable.soft:
+    type: integer
+    default: 0
+  computeEngine.dashboardPoolSize:
+    type: string
+    default: "1"
+  computeEngine.dashboardMinAvailable:
+    type: string
+    default: "0"
+  ontology.replicas:
+    type: integer
+    default: 1
+  sandbox.rwoPvc.enabled:
+    type: boolean
+    default: true
+  apptest.enabled:
+    type: boolean
+    default: true
+  images.tester:
+    type: string
+    default: "$REGISTRY/tester:$TAG"
+  secrets.authJwtPrivateKey:
+    type: string
+    default: "Mxfw+Yw2fXDuvWl0GOEVo1yJUXe25kOLAohKydLtuPZYGPKXlD/7bl0b8K2eFgwPyOvnX8t9BXLa5PSTozGnDA=="
+  secrets.authJwtPublicKey:
+    type: string
+    default: "WBjyl5Q/+25dG/CtnhYMD8jr51/LfQVy2uT0k6Mxpww="
+  secrets.authJwtKeyId:
+    type: string
+    default: "SfuUFDRCH7eyzH+8o/WKo+pgFOEl9W8yjnobzyCGtxM="

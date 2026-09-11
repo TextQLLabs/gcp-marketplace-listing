@@ -1,0 +1,14 @@
+{{- if .Values.tableau.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Release.Name }}-tableau-storage
+  labels:
+    {{- include "tql.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 30Gi
+{{- end }}

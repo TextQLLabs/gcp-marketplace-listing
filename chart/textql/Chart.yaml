@@ -1,0 +1,9 @@
+apiVersion: v2
+name: textql
+description: TextQL for Google Kubernetes Engine — Google Cloud Marketplace chart.
+type: application
+version: 1.3.20
+appVersion: "1.3.20"
+home: https://docs.textql.com
+icon: https://mintcdn.com/textql/pa7tJ1trBrfXrbqq/logo-textql/light.svg
+kubeVersion: ">=1.29.0-0"

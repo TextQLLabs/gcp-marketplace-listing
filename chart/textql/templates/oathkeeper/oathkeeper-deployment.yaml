@@ -1,0 +1,88 @@
+{{- if .Values.oathkeeper.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-oathkeeper
+  labels:
+    component: auth
+    {{- include "tql.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.oathkeeper.replicas }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      {{- include "tql.selectorLabels" (dict "ctx" . "app" "oathkeeper") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "tql.selectorLabels" (dict "ctx" . "app" "oathkeeper") | nindent 8 }}
+        {{- include "tql.scheduling.serviceTierLabel" . | nindent 8 }}
+        app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/oathkeeper/oathkeeper-configmap.yaml") . | sha256sum }}
+        {{- include "tql.podAnnotations" . | nindent 8 }}
+    spec:
+      {{- include "tql.podRuntime" . | nindent 6 }}
+      {{- include "tql.scheduling" (dict "app" "oathkeeper") | nindent 6 }}
+      terminationGracePeriodSeconds: 180
+      serviceAccountName: {{ .Release.Name }}-oathkeeper
+      containers:
+        - name: oathkeeper
+          image: "{{ include "tql.image" (dict "ctx" . "key" "oathkeeper" "name" "oathkeeper") }}"
+          imagePullPolicy: IfNotPresent
+          command:
+            - oathkeeper
+            - serve
+            - --config
+            - /etc/config/oathkeeper.yaml
+          ports:
+            - name: api
+              containerPort: 4456
+              protocol: TCP
+            - name: proxy
+              containerPort: 4455
+              protocol: TCP
+            - name: metrics
+              containerPort: 9000
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /health/alive
+              port: 4456
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 4456
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          volumeMounts:
+            - name: config
+              mountPath: /etc/config
+              readOnly: true
+          env:
+            - name: LOG_LEVEL
+              value: "info"
+            - name: LOG_FORMAT
+              value: "json"
+      volumes:
+        - name: config
+          configMap:
+            name: {{ .Release.Name }}-oathkeeper-config
+{{- end }}

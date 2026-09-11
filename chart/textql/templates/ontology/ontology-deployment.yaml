@@ -1,0 +1,76 @@
+{{- if .Values.ontology.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-ontology
+  labels:
+    {{- include "tql.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.ontology.replicas }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      {{- include "tql.selectorLabels" (dict "ctx" . "app" "ontology") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "tql.selectorLabels" (dict "ctx" . "app" "ontology") | nindent 8 }}
+        {{- include "tql.scheduling.serviceTierLabel" . | nindent 8 }}
+        app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+      annotations:
+        {{- include "tql.podAnnotations" . | nindent 8 }}
+    spec:
+      {{- include "tql.podRuntime" . | nindent 6 }}
+      {{- include "tql.scheduling" (dict "app" "ontology") | nindent 6 }}
+      terminationGracePeriodSeconds: 180
+      serviceAccountName: {{ .Release.Name }}-ontology
+      containers:
+        - name: ontology
+          image: "{{ include "tql.image" (dict "ctx" . "key" "ontology" "name" "tql-ontology") }}"
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+          env:
+            - name: INTERNAL_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-service-auth-secrets
+                  key: internal.key
+            - name: USE_SECRET_MANAGER
+              value: "false"
+            - name: CLAUDE_KEY
+              value: "not-configured"
+            - name: OAI_KEY
+              value: "not-configured"
+            - name: NODE_URL
+              value: "http://{{ .Release.Name }}-web:80"
+            - name: PGUSER
+              value: {{ include "tql.db.username" . | quote }}
+            - name: PGPASS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-db-secrets
+                  key: password
+            - name: PGDB
+              value: {{ include "tql.db.name" . | quote }}
+            - name: PGHOST
+              value: {{ include "tql.db.host" . | quote }}
+            - name: PGPORT
+              value: {{ include "tql.db.port" . | quote }}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3005
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 12
+          ports:
+            - containerPort: 3005
+{{- end }}

@@ -1,0 +1,886 @@
+{{- if .Values.oathkeeper.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-oathkeeper-config
+  labels:
+    app: oathkeeper
+    component: auth
+    {{- include "tql.labels" . | nindent 4 }}
+data:
+  {{- $hostnames := include "tql.hostnames" . | fromYamlArray }}
+  {{- $publicApi := .Values.web.publicApi }}
+  oathkeeper.yaml: |
+    log:
+      level: info
+      format: json
+
+    serve:
+      api:
+        port: 4456
+        cors:
+          enabled: true
+          allowed_origins:
+            {{- range $hostnames }}
+            - "https://{{ . }}"
+            {{- end }}
+          allowed_methods:
+            - GET
+            - POST
+            - PUT
+            - DELETE
+            - PATCH
+          allowed_headers:
+            - Authorization
+            - Cookie
+            - Content-Type
+            - X-Requested-With
+            - tql_auth_key
+            - tql_api_key
+            - tql_analytics_id
+          exposed_headers:
+            - Content-Type
+            - Set-Cookie
+      proxy:
+        port: 4455
+        trust_forwarded_headers: false
+        timeout:
+          read: 35m
+          write: 35m
+          idle: 11m
+        cors:
+          enabled: true
+          allowed_origins:
+            {{- range $hostnames }}
+            - "https://{{ . }}"
+            {{- end }}
+          allowed_methods:
+            - GET
+            - POST
+            - PUT
+            - DELETE
+            - PATCH
+          allowed_headers:
+            - Authorization
+            - Cookie
+            - Content-Type
+            - X-Requested-With
+            - tql_auth_key
+            - tql_api_key
+            - tql_analytics_id
+          exposed_headers:
+            - Content-Type
+            - Set-Cookie
+
+    errors:
+      fallback:
+        - redirect
+        - json
+      handlers:
+        json:
+          enabled: true
+          config:
+            verbose: false
+        redirect:
+          enabled: true
+          config:
+            to: {{ $publicApi }}/oidc/authorize
+            when:
+              - error:
+                  - unauthorized
+                  - forbidden
+                request:
+                  header:
+                    accept:
+                      - text/html
+
+    access_rules:
+      matching_strategy: regexp
+      repositories:
+        - file:///etc/config/access-rules.json
+
+    authenticators:
+      jwt:
+        enabled: true
+        config:
+          jwks_urls:
+            - http://{{ .Release.Name }}-compute-engine.{{ .Release.Namespace }}.svc.cluster.local:5000/.well-known/jwks.json
+          scope_strategy: none
+          required_scope: []
+          target_audience: []
+          trusted_issuers:
+            - textql
+          token_from:
+            cookie: tql_session_token
+          allowed_algorithms:
+            - EdDSA
+          jwks_max_wait: 10s
+          jwks_ttl: 30m
+
+      anonymous:
+        enabled: true
+        config:
+          subject: anonymous
+
+      bearer_token:
+        enabled: true
+        config:
+          check_session_url: http://{{ .Release.Name }}-compute-engine.{{ .Release.Namespace }}.svc.cluster.local:5000/auth/check-apikey
+          preserve_path: true
+          force_method: GET
+
+      cookie_session:
+        enabled: true
+        config:
+          check_session_url: http://{{ .Release.Name }}-compute-engine.{{ .Release.Namespace }}.svc.cluster.local:5000/auth/check-auth
+          preserve_path: true
+          force_method: GET
+          only:
+            - tql_session_token
+            - tql_long_term_access_token
+
+      noop:
+        enabled: true
+
+    authorizers:
+      allow:
+        enabled: true
+
+      deny:
+        enabled: true
+
+    mutators:
+      noop:
+        enabled: true
+
+      header:
+        enabled: true
+        config:
+          headers:
+            X-Member-ID: "{{ "{{ print .Extra.member_id }}" }}"
+            X-Org-ID: "{{ "{{ print .Extra.org_id }}" }}"
+            X-Roles: "{{ "{{ print .Extra.roles }}" }}"
+            X-Client-Filter: "{{ "{{ print .Extra.client_id }}" }}"
+            X-Auth-Method: '{{ "{{ or .Extra.auth_method \"oathkeeper-jwt\" }}" }}'
+
+  access-rules.json: |
+    [
+      {
+        "id": "api:v1:authenticated",
+        "version": "v1.0.0",
+        "description": "Authenticate all /v1 API requests",
+        "match": {
+          "url": "<http|https>://<[^/]+>/v1<$|/.*>",
+          "methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
+        },
+        "authenticators": [
+          {
+            "handler": "jwt"
+          },
+          {
+            "handler": "bearer_token"
+          },
+          {
+            "handler": "cookie_session"
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "header"
+          }
+        ],
+        "upstream": {
+          "url": "http://{{ .Release.Name }}-compute-engine.{{ .Release.Namespace }}.svc.cluster.local:5000",
+          "preserve_host": true
+        }
+      },
+      {
+        "id": "api:v2:authenticated",
+        "version": "v1.0.0",
+        "description": "Authenticate all /v2 API requests via API key only",
+        "match": {
+          "url": "<http|https>://<[^/]+>/v2<$|/.*>",
+          "methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
+        },
+        "authenticators": [
+          {
+            "handler": "bearer_token"
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "header"
+          }
+        ],
+        "upstream": {
+          "url": "http://{{ .Release.Name }}-compute-engine.{{ .Release.Namespace }}.svc.cluster.local:5000",
+          "preserve_host": true
+        }
+      },
+      {
+        "id": "rpc:public:auth-unauthenticated",
+        "version": "v1.0.0",
+        "description": "Allow anonymous access to login and OAuth endpoints so expired cookies cannot block authentication (required for single-OIDC as well)",
+        "match": {
+          "url": "<http|https>://<[^/]+>/rpc/public/textql.rpc.public.auth.PublicAuthService/<LoginEmailStart|ValidateIntermediaryToken|ValidateLongTermToken|ExchangeIntermediaryToken|GetGoogleOAuthUrl|HandleGoogleOAuthCallback|GetOIDCAuthUrl|HandleOIDCCallback|CheckDomainForOIDC|CreateOrganization|VerifyApiKey|InitiateCliDeviceAuthorization|PollCliDeviceToken>",
+          "methods": ["POST", "OPTIONS"]
+        },
+        "authenticators": [
+          {
+            "handler": "anonymous"
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "noop"
+          }
+        ],
+        "upstream": {
+          "url": "http://{{ .Release.Name }}-compute-engine.{{ .Release.Namespace }}.svc.cluster.local:5000",
+          "preserve_host": true
+        }
+      },
+      {
+        "id": "rpc:public:manual-routes",
+        "version": "v1.0.0",
+        "description": "Authenticated access to manually registered public routes. COUPLING: the device-auth RPCs must stay excluded — rpc:public:auth-unauthenticated always matches them, and Oathkeeper 500s when two rules match one request.",
+        "match": {
+          "url": "<http|https>://<[^/]+>/rpc/public/<(?!slack/)(?!teams/)(?!textql\\.rpc\\.public\\.auth\\.PublicAuthService/(InitiateCliDeviceAuthorization|PollCliDeviceToken)).*>",
+          "methods": ["GET", "POST", "OPTIONS"]
+        },
+        "authenticators": [
+          {
+            "handler": "bearer_token",
+            "config": {
+              "check_session_url": "http://{{ .Release.Name }}-compute-engine.{{ .Release.Namespace }}.svc.cluster.local:5000/auth/check-public-api-bearer",
+              "preserve_path": true,
+              "force_method": "GET"
+            }
+          },
+          {
+            "handler": "cookie_session"
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "header"
+          }
+        ],
+        "upstream": {
+          "url": "http://{{ .Release.Name }}-compute-engine.{{ .Release.Namespace }}.svc.cluster.local:5000",
+          "preserve_host": true
+        }
+      },
+      {
+        "id": "rpc:public:connect-routes",
+        "version": "v1.0.0",
+        "description": "Authenticated access to connect-go public RPC endpoints",
+        "match": {
+          "url": "<http|https>://<[^/]+>/textql.rpc.public.<.*>",
+          "methods": ["POST", "OPTIONS"]
+        },
+        "authenticators": [
+          {
+            "handler": "bearer_token",
+            "config": {
+              "check_session_url": "http://{{ .Release.Name }}-compute-engine.{{ .Release.Namespace }}.svc.cluster.local:5000/auth/check-public-api-bearer",
+              "preserve_path": true,
+              "force_method": "GET"
+            }
+          },
+          {
+            "handler": "cookie_session"
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "header"
+          }
+        ],
+        "upstream": {
+          "url": "http://{{ .Release.Name }}-compute-engine.{{ .Release.Namespace }}.svc.cluster.local:5000",
+          "preserve_host": true
+        }
+      },
+      {
+        "id": "sandbox:proxy:authenticated",
+        "version": "v1.0.0",
+        "description": "Authenticate sandbox proxy requests",
+        "match": {
+          "url": "<http|https>://<[^/]+>/sandbox/proxy/<.*>",
+          "methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
+        },
+        "authenticators": [
+          {
+            "handler": "jwt"
+          },
+          {
+            "handler": "bearer_token"
+          },
+          {
+            "handler": "cookie_session"
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "header"
+          }
+        ],
+        "upstream": {
+          "url": "http://{{ .Release.Name }}-compute-engine.{{ .Release.Namespace }}.svc.cluster.local:5000",
+          "preserve_host": true
+        }
+      },
+      {
+        "id": "asset:proxy:authenticated",
+        "version": "v1.0.0",
+        "description": "Authenticate asset proxy requests. Auth is enforced at the gateway: signed asset URLs require a session or bearer token.",
+        "match": {
+          "url": "<http|https>://<[^/]+>/asset/proxy/<.*>",
+          "methods": ["GET", "HEAD", "POST", "OPTIONS"]
+        },
+        "authenticators": [
+          {
+            "handler": "bearer_token"
+          },
+          {
+            "handler": "cookie_session"
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "noop"
+          }
+        ],
+        "upstream": {
+          "url": "http://{{ .Release.Name }}-compute-engine.{{ .Release.Namespace }}.svc.cluster.local:5000",
+          "preserve_host": true
+        }
+      },
+      {
+        "id": "asset:apptree:authenticated",
+        "version": "v1.0.0",
+        "description": "App tree assets. Auth is enforced at the gateway like every other route.",
+        "match": {
+          "url": "<http|https>://<[^/]+>/asset/apptree/<.*>",
+          "methods": ["GET", "HEAD", "OPTIONS"]
+        },
+        "authenticators": [
+          {
+            "handler": "bearer_token"
+          },
+          {
+            "handler": "cookie_session"
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "noop"
+          }
+        ],
+        "upstream": {
+          "url": "http://{{ .Release.Name }}-compute-engine.{{ .Release.Namespace }}.svc.cluster.local:5000",
+          "preserve_host": true
+        }
+      },
+      {
+        "id": "agent:avatar:authenticated",
+        "version": "v1.0.0",
+        "description": "Agent avatar images require a session cookie or API key; the endpoint is never world-readable on this deployment.",
+        "match": {
+          "url": "<http|https>://<[^/]+>/agent-avatar/<.*>",
+          "methods": ["GET", "HEAD", "OPTIONS"]
+        },
+        "authenticators": [
+          {
+            "handler": "bearer_token"
+          },
+          {
+            "handler": "cookie_session"
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "noop"
+          }
+        ],
+        "upstream": {
+          "url": "http://{{ .Release.Name }}-compute-engine.{{ .Release.Namespace }}.svc.cluster.local:5000",
+          "preserve_host": true
+        }
+      },
+      {
+        "id": "library:raw:authenticated",
+        "version": "v1.0.0",
+        "description": "Authenticate context v3 library raw-file requests. anonymous is unconditional because signed URLs (email shares) arrive without a Bearer token or session cookie; LibraryRawHandler enforces the access decision itself (signature verification OR AuthenticateRequest, returning 401 when neither applies).",
+        "match": {
+          "url": "<http|https>://<[^/]+>/library/raw/<.*>",
+          "methods": ["GET", "HEAD", "OPTIONS"]
+        },
+        "authenticators": [
+          {
+            "handler": "bearer_token",
+            "config": {
+              "check_session_url": "http://{{ .Release.Name }}-compute-engine.{{ .Release.Namespace }}.svc.cluster.local:5000/auth/check-library-raw-signature",
+              "preserve_path": true,
+              "force_method": "GET",
+              "token_from": {
+                "query_parameter": "signature"
+              }
+            }
+          },
+          {
+            "handler": "bearer_token"
+          },
+          {
+            "handler": "cookie_session"
+          },
+          {
+            "handler": "anonymous"
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "noop"
+          }
+        ],
+        "upstream": {
+          "url": "http://{{ .Release.Name }}-compute-engine.{{ .Release.Namespace }}.svc.cluster.local:5000",
+          "preserve_host": true
+        }
+      },
+      {
+        "id": "scim:v2:authenticated",
+        "version": "v1.0.0",
+        "description": "Authenticate SCIM v2 requests via bearer token (SCIM tokens) or session",
+        "match": {
+          "url": "<http|https>://<[^/]+>/scim/v2/<.*>",
+          "methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
+        },
+        "authenticators": [
+          {
+            "handler": "bearer_token",
+            "config": {
+              "check_session_url": "http://{{ .Release.Name }}-compute-engine.{{ .Release.Namespace }}.svc.cluster.local:5000/auth/check-scim-token",
+              "preserve_path": true,
+              "force_method": "GET"
+            }
+          },
+          {
+            "handler": "cookie_session"
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "noop"
+          }
+        ],
+        "upstream": {
+          "url": "http://{{ .Release.Name }}-compute-engine.{{ .Release.Namespace }}.svc.cluster.local:5000",
+          "preserve_host": true
+        }
+      },
+      {
+        "id": "oauth:server:anonymous",
+        "version": "v1.0.0",
+        "description": "OAuth 2.1 authorization server endpoints (discovery, register, authorize, token, revoke). Auth is enforced inside the handlers via PKCE, client secret, session cookie, or bearer token.",
+        "match": {
+          "url": "<http|https>://<[^/]+>/<(oauth/.*|\\.well-known/(oauth-(authorization-server|protected-resource(/mcp)?)|openid-configuration))>",
+          "methods": ["GET", "POST", "OPTIONS"]
+        },
+        "authenticators": [
+          {
+            "handler": "anonymous"
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "noop"
+          }
+        ],
+        "upstream": {
+          "url": "http://{{ .Release.Name }}-compute-engine.{{ .Release.Namespace }}.svc.cluster.local:5000",
+          "preserve_host": true
+        }
+      },
+      {
+        "id": "mcp:bearer:authenticated",
+        "version": "v1.0.0",
+        "description": "MCP server endpoint. Bearer token auth (OAuth access token or API key) pre-validated by Oathkeeper via /auth/check-mcp-bearer.",
+        "match": {
+          "url": "<http|https>://<[^/]+>/mcp<(?:/.*)?(?:\\?.*)?>",
+          "methods": ["GET", "POST", "DELETE", "OPTIONS"]
+        },
+        "authenticators": [
+          {
+            "handler": "bearer_token",
+            "config": {
+              "check_session_url": "http://{{ .Release.Name }}-compute-engine.{{ .Release.Namespace }}.svc.cluster.local:5000/auth/check-mcp-bearer",
+              "preserve_path": true,
+              "force_method": "GET"
+            }
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "noop"
+          }
+        ],
+        "upstream": {
+          "url": "http://{{ .Release.Name }}-compute-engine.{{ .Release.Namespace }}.svc.cluster.local:5000",
+          "preserve_host": true
+        }
+      },
+      {
+        "id": "api:v1:metrics:apikey",
+        "version": "v1.0.0",
+        "description": "Authenticate metrics scrape endpoint via API key bearer token",
+        "match": {
+          "url": "<http|https>://<[^/]+>/api/v1/metrics<.*>",
+          "methods": ["GET", "OPTIONS"]
+        },
+        "authenticators": [
+          {
+            "handler": "bearer_token",
+            "config": {
+              "check_session_url": "http://{{ .Release.Name }}-compute-engine.{{ .Release.Namespace }}.svc.cluster.local:5000/auth/check-apikey",
+              "preserve_path": true,
+              "force_method": "GET"
+            }
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "header"
+          }
+        ],
+        "upstream": {
+          "url": "http://{{ .Release.Name }}-compute-engine.{{ .Release.Namespace }}.svc.cluster.local:5000",
+          "preserve_host": true
+        }
+      },
+      {
+        "id": "git:authenticated",
+        "version": "v1.0.0",
+        "description": "Authenticate git server requests (Basic Auth API key or session cookie)",
+        "match": {
+          "url": "<http|https>://<[^/]+>/git/<.*>",
+          "methods": ["GET", "POST", "OPTIONS"]
+        },
+        "authenticators": [
+          {
+            "handler": "cookie_session"
+          },
+          {
+            "handler": "bearer_token"
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "noop"
+          }
+        ],
+        "upstream": {
+          "url": "http://{{ .Release.Name }}-compute-engine.{{ .Release.Namespace }}.svc.cluster.local:5000",
+          "preserve_host": true
+        }
+      },
+      {
+        "id": "desktop:download:authenticated",
+        "version": "v1.0.0",
+        "description": "Authenticate desktop app download requests",
+        "match": {
+          "url": "<http|https>://<[^/]+>/desktop/download/<.*>",
+          "methods": ["GET", "HEAD", "OPTIONS"]
+        },
+        "authenticators": [
+          {
+            "handler": "bearer_token"
+          },
+          {
+            "handler": "cookie_session"
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "header"
+          }
+        ],
+        "upstream": {
+          "url": "http://{{ .Release.Name }}-compute-engine.{{ .Release.Namespace }}.svc.cluster.local:5000",
+          "preserve_host": true
+        }
+      },
+      {
+        "id": "cli:download:authenticated",
+        "version": "v1.0.0",
+        "description": "Authenticate ana CLI download requests",
+        "match": {
+          "url": "<http|https>://<[^/]+>/cli/download/<.*>",
+          "methods": ["GET", "HEAD", "OPTIONS"]
+        },
+        "authenticators": [
+          {
+            "handler": "bearer_token"
+          },
+          {
+            "handler": "cookie_session"
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "header"
+          }
+        ],
+        "upstream": {
+          "url": "http://{{ .Release.Name }}-compute-engine.{{ .Release.Namespace }}.svc.cluster.local:5000",
+          "preserve_host": true
+        }
+      },
+      {
+        "id": "cli:install-script:authenticated",
+        "version": "v1.0.0",
+        "description": "Authenticate ana CLI install script requests",
+        "match": {
+          "url": "<http|https>://<[^/]+>/cli/install.sh",
+          "methods": ["GET", "HEAD", "OPTIONS"]
+        },
+        "authenticators": [
+          {
+            "handler": "bearer_token"
+          },
+          {
+            "handler": "cookie_session"
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "header"
+          }
+        ],
+        "upstream": {
+          "url": "http://{{ .Release.Name }}-compute-engine.{{ .Release.Namespace }}.svc.cluster.local:5000",
+          "preserve_host": true
+        }
+      },
+      {
+        "id": "health:anonymous",
+        "version": "v1.0.0",
+        "description": "Allow health checks",
+        "match": {
+          "url": "<http|https>://<[^/]+>/health<.*>",
+          "methods": ["GET", "HEAD"]
+        },
+        "authenticators": [
+          {
+            "handler": "anonymous"
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "noop"
+          }
+        ],
+        "upstream": {
+          "url": "http://{{ .Release.Name }}-compute-engine.{{ .Release.Namespace }}.svc.cluster.local:5000",
+          "preserve_host": true
+        }
+      },
+      {
+        "id": "jwks:anonymous",
+        "version": "v1.0.0",
+        "description": "Allow JWKS endpoint access",
+        "match": {
+          "url": "<http|https>://<[^/]+>/.well-known/jwks.json",
+          "methods": ["GET"]
+        },
+        "authenticators": [
+          {
+            "handler": "anonymous"
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "noop"
+          }
+        ],
+        "upstream": {
+          "url": "http://{{ .Release.Name }}-compute-engine.{{ .Release.Namespace }}.svc.cluster.local:5000",
+          "preserve_host": true
+        }
+      },
+      {
+        "id": "web:api:authenticated",
+        "version": "v1.0.0",
+        "description": "Authenticate web service API endpoints",
+        "match": {
+          "url": "<http|https>://<[^/]+>/api/<(?!v1/metrics(?:$|/|\\?)).*>",
+          "methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
+        },
+        "authenticators": [
+          {
+            "handler": "jwt"
+          },
+          {
+            "handler": "bearer_token"
+          },
+          {
+            "handler": "cookie_session"
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "header"
+          }
+        ],
+        "upstream": {
+          "url": "http://{{ .Release.Name }}-web.{{ .Release.Namespace }}.svc.cluster.local:80",
+          "preserve_host": true
+        }
+      },
+      {
+        "id": "oidc:flow:anonymous",
+        "version": "v1.0.0",
+        "description": "Allow anonymous access to server-side OIDC flow endpoints",
+        "match": {
+          "url": "<http|https>://<[^/]+>/oidc/<.*>",
+          "methods": ["GET", "HEAD", "OPTIONS"]
+        },
+        "authenticators": [
+          {
+            "handler": "anonymous"
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "noop"
+          }
+        ],
+        "upstream": {
+          "url": "http://{{ .Release.Name }}-compute-engine.{{ .Release.Namespace }}.svc.cluster.local:5000",
+          "preserve_host": true
+        }
+      },
+      {
+        "id": "web:static:anonymous",
+        "version": "v1.0.0",
+        "description": "Allow anonymous access to static assets (SvelteKit bundles/ECharts assets)",
+        "match": {
+          "url": "<http|https>://<[^/]+>/<_app|echarts>/<.*>",
+          "methods": ["GET", "HEAD", "OPTIONS"]
+        },
+        "authenticators": [
+          {
+            "handler": "anonymous"
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "noop"
+          }
+        ],
+        "upstream": {
+          "url": "http://{{ .Release.Name }}-web.{{ .Release.Namespace }}.svc.cluster.local:80",
+          "preserve_host": true
+        }
+      },
+      {
+        "id": "web:frontend:authenticated",
+        "version": "v1.0.0",
+        "description": "Require authentication for web frontend (unauthenticated users redirected to OIDC)",
+        "match": {
+          "url": "<http|https>://<[^/]+>/<(?!health|v1(?:$|/)|v2(?:$|/)|rpc/|sandbox/proxy|asset/proxy|asset/apptree|asset/teams|agent-avatar|library/raw|scim/|desktop/download|cli/|.well-known|api/|auth/|oidc/|git/|mcp(?:$|/|\\?)|oauth/|logout$|_app/|echarts/).*>",
+          "methods": ["GET", "HEAD", "POST", "OPTIONS"]
+        },
+        "authenticators": [
+          {
+            "handler": "jwt"
+          },
+          {
+            "handler": "cookie_session"
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "noop"
+          }
+        ],
+        "upstream": {
+          "url": "http://{{ .Release.Name }}-web.{{ .Release.Namespace }}.svc.cluster.local:80",
+          "preserve_host": true
+        }
+      }
+    ]
+{{- end }}

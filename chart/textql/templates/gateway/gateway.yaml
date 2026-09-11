@@ -1,0 +1,35 @@
+{{- if .Values.gateway.enabled }}
+{{- $lb := .Values.global.loadBalancer }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: {{ .Release.Name }}-gateway
+  labels:
+    {{- include "tql.labels" . | nindent 4 }}
+spec:
+  gatewayClassName: gke-l7-regional-external-managed
+  listeners:
+    {{- if $lb.sslCertificate }}
+    - name: https
+      protocol: HTTPS
+      port: 443
+      allowedRoutes:
+        namespaces:
+          from: Same
+      tls:
+        mode: Terminate
+        options:
+          networking.gke.io/cert-manager-certs: {{ $lb.sslCertificate | quote }}
+    {{- end }}
+    - name: http
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        namespaces:
+          from: Same
+  {{- if $lb.staticIP }}
+  addresses:
+    - type: NamedAddress
+      value: {{ $lb.staticIP | quote }}
+  {{- end }}
+{{- end }}

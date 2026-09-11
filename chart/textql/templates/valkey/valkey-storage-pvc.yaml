@@ -1,0 +1,14 @@
+{{- if .Values.valkey.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Release.Name }}-valkey-storage
+  labels:
+    {{- include "tql.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 32Gi
+{{- end }}

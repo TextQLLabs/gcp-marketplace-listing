@@ -1,0 +1,39 @@
+{{- if .Values.migrationJob.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-db-migrate
+  labels:
+    {{- include "tql.labels" . | nindent 4 }}
+spec:
+  backoffLimit: 10
+  template:
+    metadata:
+      labels:
+        {{- include "tql.selectorLabels" (dict "ctx" . "app" "db-migrate") | nindent 8 }}
+      annotations:
+        {{- include "tql.podAnnotations" . | nindent 8 }}
+    spec:
+      {{- include "tql.podRuntime" . | nindent 6 }}
+      restartPolicy: OnFailure
+      containers:
+        - name: migrate
+          image: "{{ include "tql.image" (dict "ctx" . "key" "computeEngine" "name" "") }}"
+          command: ["app", "migrate", "up"]
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "0.1"
+            limits:
+              memory: "512Mi"
+          env:
+            - name: USE_SECRET_MANAGER
+              value: "false"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-db-secrets
+                  key: database.url
+            - name: DATABASE_SCHEMA
+              value: "public"
+{{- end }}

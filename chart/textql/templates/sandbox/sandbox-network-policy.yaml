@@ -1,0 +1,65 @@
+{{- if .Values.computeEngine.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Release.Name }}-sandbox-egress-policy
+  labels:
+    {{- include "tql.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchExpressions:
+      - key: worker-type
+        operator: In
+        values:
+          - sandbox
+          - dashboard
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - ports:
+        - protocol: TCP
+          port: 50053
+    - from:
+        - podSelector:
+            matchLabels:
+              app: compute-engine
+      ports:
+        - protocol: TCP
+          port: 50051
+        - protocol: TCP
+          port: 50052
+        - protocol: TCP
+          port: 8050
+          endPort: 8999
+  egress:
+    - to:
+       - podSelector:
+            matchLabels:
+              app: compute-engine
+      ports:
+        - protocol: TCP
+          port: 8123
+        - protocol: TCP
+          port: 5000
+        - protocol: TCP
+          port: 50051
+        - protocol: TCP
+          port: 50052
+    - to:
+        - ipBlock:
+            cidr: 169.254.20.10/32
+        - ipBlock:
+            cidr: 169.254.169.254/32
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+{{- end }}

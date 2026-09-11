@@ -1,0 +1,70 @@
+{{- if .Values.postgres.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-postgres
+  labels:
+    {{- include "tql.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "tql.selectorLabels" (dict "ctx" . "app" "postgres") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "tql.selectorLabels" (dict "ctx" . "app" "postgres") | nindent 8 }}
+        {{- include "tql.scheduling.serviceTierLabel" . | nindent 8 }}
+        app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+      annotations:
+        {{- include "tql.podAnnotations" . | nindent 8 }}
+    spec:
+      {{- include "tql.podRuntime" . | nindent 6 }}
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: postgres
+          image: "{{ include "tql.image" (dict "ctx" . "key" "postgres" "name" "postgres") }}"
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: POSTGRES_DB
+              value: {{ .Values.postgres.auth.database | quote }}
+            - name: POSTGRES_USER
+              value: {{ .Values.postgres.auth.username | quote }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-db-secrets
+                  key: password
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          ports:
+            - name: postgres
+              containerPort: 5432
+              protocol: TCP
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 12
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "500m"
+            limits:
+              memory: "4Gi"
+              cpu: "2"
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: {{ .Release.Name }}-postgres-data
+{{- end }}

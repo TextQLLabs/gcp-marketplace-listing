@@ -1,0 +1,43 @@
+{{- if .Values.gateway.enabled }}
+apiVersion: networking.gke.io/v1
+kind: GCPBackendPolicy
+metadata:
+  name: {{ .Release.Name }}-web-backend-policy
+  labels:
+    {{- include "tql.labels" . | nindent 4 }}
+spec:
+  default:
+    timeoutSec: 605
+  targetRef:
+    group: ""
+    kind: Service
+    name: {{ .Release.Name }}-web
+---
+apiVersion: networking.gke.io/v1
+kind: GCPBackendPolicy
+metadata:
+  name: {{ .Release.Name }}-compute-backend-policy
+  labels:
+    {{- include "tql.labels" . | nindent 4 }}
+spec:
+  default:
+    timeoutSec: 605
+  targetRef:
+    group: ""
+    kind: Service
+    name: {{ .Release.Name }}-compute-engine
+---
+apiVersion: networking.gke.io/v1
+kind: GCPBackendPolicy
+metadata:
+  name: {{ .Release.Name }}-oathkeeper-backend-policy
+  labels:
+    {{- include "tql.labels" . | nindent 4 }}
+spec:
+  default:
+    timeoutSec: 605
+  targetRef:
+    group: ""
+    kind: Service
+    name: {{ .Release.Name }}-oathkeeper
+{{- end }}

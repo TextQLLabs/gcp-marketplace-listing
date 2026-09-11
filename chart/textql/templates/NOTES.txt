@@ -1,0 +1,18 @@
+-----
+
+Thank you for installing TextQL!
+
+Release:   {{ .Release.Name }}
+Namespace: {{ .Release.Namespace }}
+
+Until a Gateway is enabled (gateway.enabled=true), reach the app with:
+
+  kubectl port-forward -n {{ .Release.Namespace }} svc/{{ .Release.Name }}-web 8080:80
+
+TextQL is a BYOL product: sign-in (OIDC) and the TextQL deployment
+credentials must be configured for full functionality. See the user guide:
+https://github.com/TextQLLabs/gcp-marketplace-listing/blob/main/docs/user-guide.md
+
+Check our docs for help: https://docs.textql.com/
+
+-----

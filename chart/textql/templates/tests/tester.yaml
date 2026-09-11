@@ -1,0 +1,59 @@
+{{- if .Values.apptest.enabled }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ .Release.Name }}-tester
+  labels:
+    {{- include "tql.labels" . | nindent 4 }}
+  annotations:
+    marketplace.cloud.google.com/verification: test
+    helm.sh/hook: test-success
+    sidecar.istio.io/inject: "false"
+spec:
+  restartPolicy: Never
+  nodeSelector:
+    kubernetes.io/arch: amd64
+  containers:
+    - name: tester
+      image: "{{ include "tql.image" (dict "ctx" . "key" "tester" "name" "tester") }}"
+      resources:
+        requests:
+          memory: "64Mi"
+          cpu: "50m"
+      command: ["/bin/sh", "-c"]
+      args:
+        - |
+          set -eu
+          check() {
+            name="$1"; url="$2"
+            i=1
+            while [ "$i" -le 30 ]; do
+              if curl -sf -o /dev/null --max-time 5 "$url"; then
+                echo "PASS: $name ($url)"
+                return 0
+              fi
+              echo "waiting for $name ($url), attempt $i/30"
+              i=$((i + 1))
+              sleep 5
+            done
+            echo "FAIL: $name ($url)"
+            return 1
+          }
+          {{- if .Values.web.enabled }}
+          check "web health" "http://{{ .Release.Name }}-web:80/api/health"
+          {{- end }}
+          {{- if .Values.oathkeeper.enabled }}
+          check "oathkeeper alive" "http://{{ .Release.Name }}-oathkeeper:4456/health/alive"
+          {{- end }}
+          {{- if .Values.computeEngine.enabled }}
+          check "compute-engine ready" "http://{{ .Release.Name }}-compute-engine:5000/health/ready"
+          {{- end }}
+          {{- if .Values.ontology.enabled }}
+          check "ontology root" "http://{{ .Release.Name }}-ontology:3005/"
+          {{- end }}
+          {{- if .Values.minio.enabled }}
+          check "minio live" "http://{{ .Release.Name }}-minio:9000/minio/health/live"
+          {{- end }}
+          {{/* tableau-engine has no HTTP endpoint; its Deployment probe covers it */}}
+          echo "All functionality tests passed."
+{{- end }}

@@ -1,0 +1,14 @@
+{{- if .Values.sandbox.filestore.enabled }}
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: "filestore-{{ .Release.Namespace }}"
+  labels:
+    {{- include "tql.labels" . | nindent 4 }}
+provisioner: filestore.csi.storage.gke.io
+parameters:
+  tier: standard
+  network: {{ .Values.compute.gke.filestoreNetwork | quote }}
+volumeBindingMode: Immediate
+allowVolumeExpansion: true
+{{- end }}

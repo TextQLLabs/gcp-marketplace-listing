@@ -1,0 +1,397 @@
+{{- if .Values.computeEngine.enabled }}
+{{/* compute-engine looks up its own Deployment by name (see
+     tql.computeDeploymentName) for the owner reference on worker pods. */}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "tql.computeDeploymentName" . }}
+  labels:
+    {{- include "tql.labels" . | nindent 4 }}
+spec:
+  {{- $smtp := .Values.compute.smtp }}
+  {{- $oidc := .Values.global.auth.oidc }}
+  {{- $computeImage := include "tql.image" (dict "ctx" . "key" "computeEngine" "name" "") }}
+  {{- $workerImage := include "tql.image" (dict "ctx" . "key" "pyWorker" "name" "tql-py-worker") }}
+  {{- $dashboardWorkerImage := include "tql.image" (dict "ctx" . "key" "pyWorkerDashboard" "name" "tql-py-worker-dashboard") }}
+  replicas: {{ .Values.computeEngine.replicas }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      {{- include "tql.selectorLabels" (dict "ctx" . "app" "compute-engine") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "tql.selectorLabels" (dict "ctx" . "app" "compute-engine") | nindent 8 }}
+        {{- include "tql.scheduling.serviceTierLabel" . | nindent 8 }}
+        app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+      annotations:
+        {{- include "tql.podAnnotations" . | nindent 8 }}
+    spec:
+      {{- include "tql.podRuntime" . | nindent 6 }}
+      {{- include "tql.scheduling" (dict "app" "compute-engine") | nindent 6 }}
+      terminationGracePeriodSeconds: 300
+      serviceAccountName: {{ .Release.Name }}-compute-engine
+      initContainers:
+        - name: migrate
+          image: "{{ $computeImage }}"
+          command: ["app", "migrate", "up"]
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "0.1"
+            limits:
+              memory: "512Mi"
+          env:
+            - name: USE_SECRET_MANAGER
+              value: "false"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-db-secrets
+                  key: database.url
+            - name: DATABASE_SCHEMA
+              value: "public"
+      containers:
+        - name: compute-engine
+          image: "{{ $computeImage }}"
+          resources:
+            requests:
+              memory: "2048Mi"
+              cpu: "1.0"
+            limits:
+              memory: "32768Mi"
+          env:
+            - name: CLIENT_IP_MODE
+              value: "legacy"
+            - name: MANAGER_PORT
+              value: "5000"
+            - name: ORCHESTRATOR
+              value: "kubernetes"
+            - name: KUBERNETES_ENVIRONMENT
+              value: "gke"
+            - name: KUBERNETES_NAMESPACE
+              value: "{{ .Release.Namespace }}"
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: HELM_CHART_VERSION
+              value: "{{ .Chart.Version }}"
+            - name: SECRETS_MODE
+              value: {{ ternary "plaintext" "externalSecrets" (eq (include "tql.secretsMode" .) "values") | quote }}
+            - name: DEPLOYMENT_TYPE
+              value: "vpc"
+            - name: USE_SECRET_MANAGER
+              value: "false"
+            - name: DEBUG
+              value: "false"
+            - name: KUBERNETES_SANDBOX_SERVICE_ACCOUNT
+              value: "{{ .Release.Name }}-sandbox-worker"
+            - name: KUBERNETES_COMPUTE_DEPLOYMENT_NAME
+              value: {{ include "tql.computeDeploymentName" . | quote }}
+            - name: KUBERNETES_SANDBOX_FILES_PVC
+              value: {{ include "tql.sandboxFilesPvcName" . | quote }}
+            - name: KUBERNETES_SANDBOX_PROXY_CA_SECRET
+              value: {{ include "tql.sandboxProxyCaSecretName" . | quote }}
+            - name: KUBERNETES_IMAGE_PULL_SECRET
+              value: {{ include "tql.pullSecretName" . | quote }}
+            - name: KUBERNETES_SANDBOX_PROXY_TOKEN_SECRET
+              value: {{ include "tql.workerTokenSecretName" . | quote }}
+            - name: KUBERNETES_WORKER_IMAGE
+              value: "{{ $workerImage }}"
+            - name: KUBERNETES_DASHBOARD_WORKER_IMAGE
+              value: "{{ $dashboardWorkerImage }}"
+            - name: DOCKER_HUB_IMAGE_TAG
+              value: "{{ .Values.global.imageTag }}"
+            - name: POOL_SIZE
+              value: "{{ .Values.computeEngine.poolSize }}"
+            - name: HARD_MIN_WORKERS_AVAILABLE
+              value: "{{ .Values.computeEngine.minWorkersAvailable.hard }}"
+            - name: SOFT_MIN_WORKERS_AVAILABLE
+              value: "{{ .Values.computeEngine.minWorkersAvailable.soft }}"
+            - name: DASHBOARD_POOL_SIZE
+              value: "{{ .Values.computeEngine.dashboardPoolSize }}"
+            - name: DASHBOARD_MIN_WORKERS_AVAILABLE
+              value: "{{ .Values.computeEngine.dashboardMinAvailable }}"
+            - name: SANDBOX_SERVICE_ANTI_AFFINITY
+              value: "true"
+            - name: KUBERNETES_SANDBOX_FILE_DIR
+              value: "/mnt/sandbox-data"
+            - name: LIBRARY_STORAGE_BACKEND
+              value: "filestore"
+            - name: ENABLE_STREAMLIT_MODE
+              value: "true"
+            - name: ENABLE_ASSET_PROXY
+              value: "true"
+            - name: SANDBOX_PROXY_SERVICE_NAME
+              value: "{{ .Release.Name }}-sandbox-forward-proxy"
+            - name: SANDBOX_PROXY_PORT
+              value: "8123"
+            - name: SANDBOX_PROXY_CA_CERT
+              value: "{{ .Values.global.sandboxProxy.caCert }}"
+            - name: SANDBOX_PROXY_CA_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-sandbox-proxy-secrets
+                  key: ca.key
+                  optional: true
+            - name: SANDBOX_AUTH_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-service-auth-secrets
+                  key: sandbox-auth.key
+            - name: INTERNAL_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-service-auth-secrets
+                  key: internal.key
+            - name: CHROMIUM_BIN
+              value: "/usr/lib/chromium/chromium"
+            - name: INTERNAL_WEB_URL
+              value: "http://{{ .Release.Name }}-web:80"
+            - name: ONTOLOGY_API
+              value: "http://{{ .Release.Name }}-ontology:3005"
+            - name: TABLEAU_TARGET
+              value: "{{ .Release.Name }}-tableau-engine:8815"
+            - name: TABLEAU_INTERNAL_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-tableau-internal-secret
+                  key: secret
+                  optional: true
+            - name: VALKEY_ADDR
+              value: "{{ .Release.Name }}-valkey:6379"
+            - name: VALKEY_TLS
+              value: "false"
+            - name: VALKEY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-valkey-secrets
+                  key: password
+            {{- if .Values.minio.enabled }}
+            - name: AWS_REGION
+              value: "us-east-1"
+            - name: AWS_ENDPOINT
+              value: "http://{{ .Release.Name }}-minio:9000"
+            - name: S3_BUCKET_NAME
+              value: "{{ .Values.minio.bucket }}"
+            {{- else }}
+            - name: AWS_REGION
+              value: "auto"
+            - name: AWS_ENDPOINT
+              value: "https://storage.googleapis.com"
+            - name: S3_BUCKET_NAME
+              value: "{{ .Values.global.gcs.bucket }}"
+            {{- end }}
+            - name: AWS_REQUEST_CHECKSUM_CALCULATION
+              value: "when_required"
+            - name: AWS_RESPONSE_CHECKSUM_VALIDATION
+              value: "when_required"
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-gcs-secrets
+                  key: hmac.accessKey
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-gcs-secrets
+                  key: hmac.secretKey
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-db-secrets
+                  key: database.url
+            - name: DATABASE_SCHEMA
+              value: "public"
+            - name: AUTH_JWT_PUBLIC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-auth-secrets
+                  key: public.key
+            - name: AUTH_JWT_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-auth-secrets
+                  key: private.key
+            - name: AUTH_JWT_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-auth-secrets
+                  key: key.id
+            - name: CONNECTOR_ENCRYPTION_KEYS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-auth-secrets
+                  key: connector.encryption.keys
+            - name: CONNECTOR_ENCRYPTION_PRIMARY_KEY
+              value: "{{ .Values.global.auth.connectorEncryptionPrimaryKey | default "k1" }}"
+            - name: SINGLE_ORG_MODE
+              value: "false"
+            - name: SINGLE_OIDC_TENANT
+              value: {{ include "tql.singleOidcTenant" . | quote }}
+            {{- with $oidc.providerType }}
+            - name: OIDC_PROVIDER_TYPE
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with $oidc.issuerUrl }}
+            - name: OIDC_ISSUER_URL
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with $oidc.clientId }}
+            - name: OIDC_CLIENT_ID
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with $oidc.scopes }}
+            - name: OIDC_SCOPES
+              value: {{ . | quote }}
+            {{- end }}
+            - name: OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-oidc-secrets
+                  key: client.secret
+                  optional: true
+            - name: MODEL_PROVIDER
+              value: "anthropic"
+            - name: ANTHROPIC_PROVIDER
+              value: "console_proxy"
+            - name: OPENAI_PROVIDER
+              value: "console_proxy"
+            - name: FIREWORKS_PROVIDER
+              value: "console_proxy_fireworks"
+            - name: CONSOLE_API_ENDPOINT
+              value: "https://console.textql.com"
+            - name: CONSOLE_WEB_URL
+              value: "https://console.textql.com"
+            - name: DEPLOYMENT_ID
+              value: "{{ .Values.compute.deploymentId }}"
+            - name: DEPLOYMENT_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-deployment-secrets
+                  key: deployment.private.key
+            - name: WEB_URL
+              value: "{{ .Values.web.publicApi }}"
+            - name: AUTH_EMAIL_SENDER_ADDRESS
+              value: "{{ .Values.global.auth.emailSenderAddress }}"
+            - name: AUTH_EMAIL_SENDER_NAME
+              value: "Ana at TextQL"
+            - name: AUTH_LOGIN_SENDER_NAME
+              value: "TextQL"
+            - name: EMAIL_PROVIDER
+              value: {{ ternary "smtp" "ses" (ne ($smtp.host | default "") "") | quote }}
+            - name: SMTP_HOST
+              value: "{{ $smtp.host }}"
+            - name: SMTP_PORT
+              value: "{{ $smtp.port | default "587" }}"
+            - name: SMTP_USERNAME
+              value: "{{ $smtp.username }}"
+            - name: SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-smtp-secrets
+                  key: smtp.password
+                  optional: true
+            - name: SMTP_ENCRYPTION
+              value: "{{ $smtp.encryption | default "starttls" }}"
+            - name: SMTP_AUTH_TYPE
+              value: "{{ $smtp.authType | default "plain" }}"
+            - name: EMAIL_MAX_RETRIES
+              value: "3"
+            - name: RATE_LIMIT_MAX_TOKENS
+              value: "600"
+            - name: RATE_LIMIT_MAX_SANDBOX_COUNT
+              value: "76"
+            - name: SCIM_RATE_LIMIT
+              value: "500"
+            - name: BRAND_NAME
+              value: "textql"
+          volumeMounts:
+            - name: sandbox-files
+              mountPath: /mnt/sandbox-data
+            - name: pprof-token
+              mountPath: /run/pprof
+          ports:
+            - containerPort: 5000
+            - containerPort: 6060
+              name: pprof
+          startupProbe:
+            httpGet:
+              path: /health/alive
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 120
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 5000
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health/alive
+              port: 5000
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 4
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sleep", "10"]
+        - name: internal-sandbox
+          image: "{{ $workerImage }}"
+          command: [ "/usr/local/bin/python3" ]
+          args: [ "/sandbox/service.py" ]
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "0.1"
+            limits:
+              memory: "512Mi"
+          env:
+            - name: "WORKER_NAME"
+              value: "internal-worker"
+            - name: ENABLE_STREAMLIT_MODE
+              value: "false"
+            - name: FLIGHT_BIND_HOST
+              value: "127.0.0.1"
+          ports:
+            - containerPort: 50051
+          workingDir: "/sandbox/files"
+          startupProbe:
+            grpc:
+              port: 50051
+            initialDelaySeconds: 3
+            failureThreshold: 15
+            periodSeconds: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+      volumes:
+        - name: pprof-token
+          emptyDir:
+            medium: Memory
+            sizeLimit: 64Ki
+        - name: sandbox-files
+          {{- if .Values.sandbox.filestore.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "tql.sandboxFilesPvcName" . }}
+            readOnly: false
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+{{- end }}

@@ -1,0 +1,26 @@
+{{- if .Values.oathkeeper.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-oathkeeper
+  labels:
+    component: auth
+    {{- include "tql.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - name: api
+      port: 4456
+      targetPort: 4456
+      protocol: TCP
+    - name: proxy
+      port: 4455
+      targetPort: 4455
+      protocol: TCP
+    - name: metrics
+      port: 9000
+      targetPort: 9000
+      protocol: TCP
+  selector:
+    {{- include "tql.selectorLabels" (dict "ctx" . "app" "oathkeeper") | nindent 4 }}
+{{- end }}

@@ -1,0 +1,29 @@
+{{- if and .Values.computeEngine.enabled .Values.sandboxPodCleaner.enabled }}
+{{/* CLI installs only; the Marketplace deployer rejects non-test hooks. */}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-remove-sandbox-pods
+  labels:
+    {{- include "tql.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": pre-delete
+spec:
+  template:
+    metadata:
+      annotations:
+        {{- include "tql.podAnnotations" . | nindent 8 }}
+    spec:
+      {{- include "tql.podRuntime" . | nindent 6 }}
+      serviceAccountName: {{ .Release.Name }}-compute-engine
+      restartPolicy: Never
+      containers:
+        - name: cleanup
+          image: "{{ include "tql.image" (dict "ctx" . "key" "kubectl" "name" "kubectl") }}"
+          resources:
+            requests:
+              memory: "52Mi"
+              cpu: "50m"
+          command: [ "/bin/sh","-c" ]
+          args: [ "kubectl delete pod -l 'worker-type in (sandbox,dashboard)' && kubectl delete secret {{ include "tql.workerTokenSecretName" . }} --ignore-not-found" ]
+{{- end }}

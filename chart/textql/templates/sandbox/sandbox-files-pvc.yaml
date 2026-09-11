@@ -1,0 +1,16 @@
+{{- if .Values.sandbox.filestore.enabled }}
+{{/* Worker pods reference this claim by name (tql.sandboxFilesPvcName). */}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "tql.sandboxFilesPvcName" . }}
+  labels:
+    {{- include "tql.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: "filestore-{{ .Release.Namespace }}"
+  resources:
+    requests:
+      storage: 1Ti
+{{- end }}
