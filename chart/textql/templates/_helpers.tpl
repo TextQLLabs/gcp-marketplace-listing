@@ -86,3 +86,26 @@ false
 {{- $sslmode := ternary "disable" "require" .Values.postgres.enabled -}}
 postgresql://{{ include "tql.db.username" . }}:{{ include "tql.db.password" . | urlquery }}@{{ include "tql.db.host" . }}:{{ include "tql.db.port" . }}/{{ include "tql.db.name" . }}?sslmode={{ $sslmode }}
 {{- end -}}
+
+{{/* Runtime-contract names. Old compute images hardcode these; images that
+     honor the KUBERNETES_*_NAME/SECRET/PVC env overrides can carry the
+     release prefix (prefixedNames.enabled). */}}
+{{- define "tql.computeDeploymentName" -}}
+{{- if .Values.prefixedNames.enabled }}{{ .Release.Name }}-compute-engine{{ else }}compute-engine{{ end -}}
+{{- end -}}
+
+{{- define "tql.sandboxFilesPvcName" -}}
+{{- if .Values.prefixedNames.enabled }}{{ .Release.Name }}-sandbox-files-pvc{{ else }}sandbox-files-pvc{{ end -}}
+{{- end -}}
+
+{{- define "tql.sandboxProxyCaSecretName" -}}
+{{- if .Values.prefixedNames.enabled }}{{ .Release.Name }}-sandbox-proxy-ca-cert{{ else }}sandbox-proxy-ca-cert{{ end -}}
+{{- end -}}
+
+{{- define "tql.pullSecretName" -}}
+{{- if .Values.prefixedNames.enabled }}{{ .Release.Name }}-regcred{{ else }}regcred{{ end -}}
+{{- end -}}
+
+{{- define "tql.workerTokenSecretName" -}}
+{{- if .Values.prefixedNames.enabled }}{{ .Release.Name }}-sandbox-proxy-worker-tokens{{ else }}sandbox-proxy-worker-tokens{{ end -}}
+{{- end -}}

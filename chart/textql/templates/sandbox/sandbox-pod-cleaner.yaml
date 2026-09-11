@@ -25,5 +25,5 @@ spec:
               memory: "52Mi"
               cpu: "50m"
           command: [ "/bin/sh","-c" ]
-          args: [ "kubectl delete pod -l 'worker-type in (sandbox,dashboard)' && kubectl delete secret sandbox-proxy-worker-tokens --ignore-not-found" ]
+          args: [ "kubectl delete pod -l 'worker-type in (sandbox,dashboard)' && kubectl delete secret {{ include "tql.workerTokenSecretName" . }} --ignore-not-found" ]
 {{- end }}

@@ -1,10 +1,10 @@
 {{- if .Values.computeEngine.enabled }}
-{{/* Fixed name: compute-engine looks up its own Deployment as
-     "compute-engine" for the owner reference on spawned worker pods. */}}
+{{/* compute-engine looks up its own Deployment by name (see
+     tql.computeDeploymentName) for the owner reference on worker pods. */}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: compute-engine
+  name: {{ include "tql.computeDeploymentName" . }}
   labels:
     {{- include "tql.labels" . | nindent 4 }}
 spec:
@@ -95,6 +95,16 @@ spec:
               value: "false"
             - name: KUBERNETES_SANDBOX_SERVICE_ACCOUNT
               value: "{{ .Release.Name }}-sandbox-worker"
+            - name: KUBERNETES_COMPUTE_DEPLOYMENT_NAME
+              value: {{ include "tql.computeDeploymentName" . | quote }}
+            - name: KUBERNETES_SANDBOX_FILES_PVC
+              value: {{ include "tql.sandboxFilesPvcName" . | quote }}
+            - name: KUBERNETES_SANDBOX_PROXY_CA_SECRET
+              value: {{ include "tql.sandboxProxyCaSecretName" . | quote }}
+            - name: KUBERNETES_IMAGE_PULL_SECRET
+              value: {{ include "tql.pullSecretName" . | quote }}
+            - name: KUBERNETES_SANDBOX_PROXY_TOKEN_SECRET
+              value: {{ include "tql.workerTokenSecretName" . | quote }}
             - name: KUBERNETES_WORKER_IMAGE
               value: "{{ $workerImage }}"
             - name: KUBERNETES_DASHBOARD_WORKER_IMAGE
@@ -379,7 +389,7 @@ spec:
         - name: sandbox-files
           {{- if .Values.sandbox.filestore.enabled }}
           persistentVolumeClaim:
-            claimName: sandbox-files-pvc
+            claimName: {{ include "tql.sandboxFilesPvcName" . }}
             readOnly: false
           {{- else }}
           emptyDir: {}

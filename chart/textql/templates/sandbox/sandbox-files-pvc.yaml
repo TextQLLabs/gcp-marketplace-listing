@@ -1,9 +1,9 @@
 {{- if .Values.sandbox.filestore.enabled }}
-{{/* Fixed name: worker pods reference this claim as "sandbox-files-pvc". */}}
+{{/* Worker pods reference this claim by name (tql.sandboxFilesPvcName). */}}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: sandbox-files-pvc
+  name: {{ include "tql.sandboxFilesPvcName" . }}
   labels:
     {{- include "tql.labels" . | nindent 4 }}
 spec:

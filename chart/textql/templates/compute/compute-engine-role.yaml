@@ -17,7 +17,7 @@ rules:
     verbs: [ "create" ]
   - apiGroups: [ "" ]
     resources: [ "secrets" ]
-    resourceNames: [ "sandbox-proxy-worker-tokens" ]
+    resourceNames: [ {{ include "tql.workerTokenSecretName" . | quote }} ]
     verbs: [ "get", "patch", "delete" ]
   - apiGroups: [ "" ]
     resources: [ "services" ]
