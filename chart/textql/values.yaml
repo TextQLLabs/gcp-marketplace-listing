@@ -16,7 +16,7 @@
 
 global:
   # One version tag shared by every image in a release.
-  imageTag: "1.3.20"
+  imageTag: "1.3.21"
   # Images resolve to <registry>/<name>:<imageTag> unless overridden
   # per-image under `images:`. The main app image lives at <registry>
   # itself, per the Marketplace repo layout.
@@ -231,10 +231,10 @@ secrets:
 # Prefix the runtime-contract names (the compute-engine Deployment,
 # sandbox-files-pvc, sandbox-proxy-ca-cert, regcred, and the worker token
 # secret) with the release name, so several app instances can share a
-# namespace. Requires compute images newer than 1.3.20 — older images
-# hardcode these names. Leave off until such an image ships.
+# namespace. Requires compute images 1.3.21 or newer, which honor the
+# KUBERNETES_* name-override env vars; set false when running older images.
 prefixedNames:
-  enabled: false
+  enabled: true
 
 # pre-delete hook that cleans up dynamically created sandbox pods on
 # uninstall. CLI installs only — the Marketplace deployer rejects charts

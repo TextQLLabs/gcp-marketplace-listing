@@ -6,7 +6,7 @@
 # release carry the version tag (TAG) and the track tag (TRACK).
 
 REGISTRY ?= us-docker.pkg.dev/textql-public/textql/textql-byoc-byol
-TAG      ?= 1.3.20
+TAG      ?= 1.3.21
 TRACK    ?= 1.3
 PLATFORM ?= linux/amd64
 
