@@ -14,7 +14,7 @@ for AI functionality. Contact support@textql.com.
 
 | Path | Purpose |
 |---|---|
-| `chart/textql/` | Helm chart. Renders client-side (`helm template` is enough), as Marketplace requires. |
+| `chart/textql/` | Helm chart. |
 | `schema.yaml` | Deployer schema (v2): UI parameters, image substitution, generated passwords and certs. |
 | `deployer/Dockerfile` | Deployment container, built on Google's `deployer_helm/onbuild` base. |
 | `apptest/deployer/schema.yaml` | Verification overlay (`/data-test`): full stack at single-replica scale plus the tester Pod. |
@@ -46,9 +46,7 @@ make verify               # Marketplace verification (install -> tests -> uninst
 ```
 
 Defaults: `TAG=1.3.21`, `TRACK=1.3`. Override per invocation, e.g.
-`make push-deployer TAG=1.3.22`. First-party images land directly in the
-product layout via `scripts/gcp-marketplace-ar-push.sh` in the main TextQL
-repo (compute engine at the root, the rest in folders).
+`make push-deployer TAG=1.3.22`.
 
 `make health NAMESPACE=<ns>` summarizes an installed release: rollouts,
 pods, volumes, and recent warnings.
