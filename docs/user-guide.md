@@ -372,10 +372,11 @@ If you installed from the Marketplace UI, delete the Application from the
 kubectl delete application "$NAME" -n "$NAMESPACE"
 ```
 
-Clean up resources that are intentionally left behind:
+`helm uninstall` deletes the chart-managed PersistentVolumeClaims and
+their data — back up first (see above). Clean up what remains:
 
 ```sh
-# Persistent volumes (DELETES ALL APP DATA — back up first)
+# Any claims left over from an interrupted uninstall
 kubectl delete pvc -n "$NAMESPACE" -l "app.kubernetes.io/name=$NAME"
 
 # Dynamically created sandbox worker pods and their token secret, if any.
