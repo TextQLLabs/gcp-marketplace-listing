@@ -18,7 +18,7 @@ MIRROR_SPECS = \
 	valkey=docker.io/valkey/valkey:8.1-alpine \
 	postgres=docker.io/pgvector/pgvector:pg17 \
 	minio=quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z.hotfix.7aa24e772 \
-	tester=docker.io/curlimages/curl:8.11.1
+	tester=docker.io/curlimages/curl:8.22.0
 
 # Product service name from Producer Portal; stamped on every image
 # manifest (required by Marketplace).
