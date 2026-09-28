@@ -379,10 +379,9 @@ their data — back up first (see above). Clean up what remains:
 # Any claims left over from an interrupted uninstall
 kubectl delete pvc -n "$NAMESPACE" -l "app.kubernetes.io/name=$NAME"
 
-# Dynamically created sandbox worker pods and their token secret, if any.
-# (CLI installs can automate this with --set sandboxPodCleaner.enabled=true,
-# which adds a pre-delete helm hook; Marketplace installs cannot, because
-# the Marketplace deployer does not support helm lifecycle hooks.)
+# Sandbox worker pods are removed automatically (they carry an owner
+# reference to the compute-engine Deployment); their token secret is the
+# one true leftover.
 kubectl delete pod -n "$NAMESPACE" -l 'worker-type in (sandbox,dashboard)'
 kubectl delete secret -n "$NAMESPACE" sandbox-proxy-worker-tokens --ignore-not-found
 

@@ -109,3 +109,21 @@ postgresql://{{ include "tql.db.username" . }}:{{ include "tql.db.password" . | 
 {{- define "tql.workerTokenSecretName" -}}
 {{- if .Values.prefixedNames.enabled }}{{ .Release.Name }}-sandbox-proxy-worker-tokens{{ else }}sandbox-proxy-worker-tokens{{ end -}}
 {{- end -}}
+
+{{/* Init container that blocks until PostgreSQL accepts connections, so
+     dependent containers start clean instead of crash-looping through the
+     database's own startup. */}}
+{{- define "tql.waitForDb" -}}
+- name: wait-for-db
+  image: "{{ include "tql.image" (dict "ctx" . "key" "postgres" "name" "postgres") }}"
+  command:
+    - sh
+    - -c
+    - until pg_isready -h {{ include "tql.db.host" . | quote }} -p {{ include "tql.db.port" . | quote }} -t 3; do echo "waiting for database"; sleep 2; done
+  resources:
+    requests:
+      memory: "32Mi"
+      cpu: "20m"
+    limits:
+      memory: "64Mi"
+{{- end -}}

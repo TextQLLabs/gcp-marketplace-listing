@@ -92,9 +92,10 @@ images:
   textableau: ""
   oathkeeper: ""
   valkey: ""
-  kubectl: ""
   postgres: ""
-  minio: ""
+  # Upstream removed this build from quay.io and Docker Hub on or before
+  # 2026-09-28; the copy in the product registry is the surviving one.
+  minio: "us-docker.pkg.dev/textql-public/textql/textql-byoc-byol/minio:1.3.21"
   tester: ""
 
 web:
@@ -235,12 +236,6 @@ secrets:
 # KUBERNETES_* name-override env vars; set false when running older images.
 prefixedNames:
   enabled: true
-
-# pre-delete hook that cleans up dynamically created sandbox pods on
-# uninstall. CLI installs only — the Marketplace deployer rejects charts
-# with non-test helm hooks.
-sandboxPodCleaner:
-  enabled: false
 
 # One-shot migration Job. Normally unnecessary (compute-engine migrates in
 # an init container); kept for running migrations standalone.

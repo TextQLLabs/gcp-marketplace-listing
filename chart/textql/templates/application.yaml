@@ -32,10 +32,12 @@ spec:
       kind: NetworkPolicy
     - group: batch
       kind: Job
+    {{- if .Values.gateway.enabled }}
     - group: gateway.networking.k8s.io
       kind: Gateway
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
+    {{- end }}
   descriptor:
     type: TextQL
     version: {{ .Chart.AppVersion | quote }}

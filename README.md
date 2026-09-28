@@ -50,3 +50,28 @@ Defaults: `TAG=1.3.21`, `TRACK=1.3`. Override per invocation, e.g.
 
 `make health NAMESPACE=<ns>` summarizes an installed release: rollouts,
 pods, volumes, and recent warnings.
+
+`make verify` runs mpdev in a container that reads the kubeconfig's
+current context and ships no cloud credential plugins. Point it at a
+kubeconfig whose current context is the marketplace cluster and whose
+user carries a static token, e.g. `KUBE_CONFIG=/path/to/kubeconfig make verify`
+with `token: $(gcloud auth print-access-token)`.
+
+## Vulnerability scan findings
+
+Marketplace rescans every image in the schema's image map. OS package
+findings on the Debian first-party images (compute engine, py-worker,
+py-worker-dashboard) between releases are fixed registry-side: one
+`apt-get full-upgrade` layer over the release image, re-pushed under the
+same version and track tags, re-annotated, old digests pruned. The
+application binary and Python environment stay those of the release
+build. Findings inside statically linked third-party binaries or without
+an upstream fix are reported as-is. The first-party Deployment containers
+pull with `imagePullPolicy: Always` so a re-pushed tag is never shadowed
+by a node's image cache.
+
+MinIO is deliberately outside the image map (its findings are Go modules
+inside the upstream binaries and cannot be patched downstream). Upstream
+stopped serving the pinned build on quay.io and Docker Hub in September
+2026, so `images.minio` points at the copy kept in the product registry;
+that copy must be reachable by whichever cluster installs the chart.

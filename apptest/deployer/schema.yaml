@@ -40,9 +40,6 @@ properties:
   apptest.enabled:
     type: boolean
     default: true
-  images.tester:
-    type: string
-    default: "$REGISTRY/tester:$TAG"
   secrets.authJwtPrivateKey:
     type: string
     default: "Mxfw+Yw2fXDuvWl0GOEVo1yJUXe25kOLAohKydLtuPZYGPKXlD/7bl0b8K2eFgwPyOvnX8t9BXLa5PSTozGnDA=="

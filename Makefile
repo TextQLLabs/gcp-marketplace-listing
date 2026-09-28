@@ -14,17 +14,19 @@ KUBE_CONTEXT ?= gke_textql-public_us-central1_gke-autopilot-marketplace
 NAMESPACE    ?= textql
 
 # Third-party images mirrored so a release is fully self-contained.
+# minio is not here: upstream stopped serving
+# RELEASE.2025-09-07T16-13-09Z.hotfix.7aa24e772 on quay.io and Docker Hub,
+# so $(REGISTRY)/minio (tags 1.3.21, 1.3) is the surviving copy; retag it
+# with gcrane for a new release instead of pulling.
 MIRROR_SPECS = \
 	valkey=docker.io/valkey/valkey:8.1-alpine \
-	kubectl=docker.io/bitnamilegacy/kubectl:1.33 \
 	postgres=docker.io/pgvector/pgvector:pg17 \
-	minio=docker.io/bitnamilegacy/minio:latest \
-	tester=docker.io/curlimages/curl:8.11.1
+	tester=docker.io/curlimages/curl:8.22.0
 
 # Product service name from Producer Portal; stamped on every image
 # manifest (required by Marketplace).
 SERVICE_NAME_ANNOTATION = com.googleapis.cloudmarketplace.product.service.name=services/textql-byoc-byol.endpoints.textql-public.cloud.goog
-ANNOTATE_IMAGES = tql-web tql-py-worker tql-py-worker-dashboard tql-ontology textableau oathkeeper valkey kubectl postgres minio tester deployer
+ANNOTATE_IMAGES = tql-web tql-py-worker tql-py-worker-dashboard tql-ontology textableau oathkeeper valkey postgres minio tester deployer
 
 .PHONY: deployer push-deployer mirror-third-party annotate app-crd verify health
 
