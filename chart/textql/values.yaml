@@ -93,7 +93,9 @@ images:
   oathkeeper: ""
   valkey: ""
   postgres: ""
-  minio: "quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z.hotfix.7aa24e772"
+  # Upstream removed this build from quay.io and Docker Hub on or before
+  # 2026-09-28; the copy in the product registry is the surviving one.
+  minio: "us-docker.pkg.dev/textql-public/textql/textql-byoc-byol/minio:1.3.21"
   tester: ""
 
 web:

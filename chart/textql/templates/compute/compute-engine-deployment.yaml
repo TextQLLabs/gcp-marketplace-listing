@@ -39,6 +39,7 @@ spec:
         {{- include "tql.waitForDb" . | nindent 8 }}
         - name: migrate
           image: "{{ $computeImage }}"
+          imagePullPolicy: Always
           command: ["app", "migrate", "up"]
           resources:
             requests:
@@ -59,6 +60,7 @@ spec:
       containers:
         - name: compute-engine
           image: "{{ $computeImage }}"
+          imagePullPolicy: Always
           resources:
             requests:
               memory: "2048Mi"
@@ -353,6 +355,7 @@ spec:
                 command: ["sleep", "10"]
         - name: internal-sandbox
           image: "{{ $workerImage }}"
+          imagePullPolicy: Always
           command: [ "/usr/local/bin/python3" ]
           args: [ "/sandbox/service.py" ]
           resources:

@@ -14,10 +14,13 @@ KUBE_CONTEXT ?= gke_textql-public_us-central1_gke-autopilot-marketplace
 NAMESPACE    ?= textql
 
 # Third-party images mirrored so a release is fully self-contained.
+# minio is not here: upstream stopped serving
+# RELEASE.2025-09-07T16-13-09Z.hotfix.7aa24e772 on quay.io and Docker Hub,
+# so $(REGISTRY)/minio (tags 1.3.21, 1.3) is the surviving copy; retag it
+# with gcrane for a new release instead of pulling.
 MIRROR_SPECS = \
 	valkey=docker.io/valkey/valkey:8.1-alpine \
 	postgres=docker.io/pgvector/pgvector:pg17 \
-	minio=quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z.hotfix.7aa24e772 \
 	tester=docker.io/curlimages/curl:8.22.0
 
 # Product service name from Producer Portal; stamped on every image
