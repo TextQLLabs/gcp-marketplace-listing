@@ -13,11 +13,9 @@ PLATFORM ?= linux/amd64
 KUBE_CONTEXT ?= gke_textql-public_us-central1_gke-autopilot-marketplace
 NAMESPACE    ?= textql
 
-# Third-party images mirrored so a release is fully self-contained.
-# minio is not here: upstream stopped serving
-# RELEASE.2025-09-07T16-13-09Z.hotfix.7aa24e772 on quay.io and Docker Hub,
-# so $(REGISTRY)/minio (tags 1.3.21, 1.3, in the schema image map) is the
-# surviving copy; retag it with gcrane for a new release instead of pulling.
+# Third-party images mirrored so a release is fully self-contained. minio is
+# not mirrored: upstream publishes no images any more, so it is built from
+# source (`make push-minio`, see minio/Dockerfile).
 MIRROR_SPECS = \
 	valkey=docker.io/valkey/valkey:8.1-alpine \
 	postgres=docker.io/pgvector/pgvector:pg17 \
@@ -28,7 +26,20 @@ MIRROR_SPECS = \
 SERVICE_NAME_ANNOTATION = com.googleapis.cloudmarketplace.product.service.name=services/textql-byoc-byol.endpoints.textql-public.cloud.goog
 ANNOTATE_IMAGES = tql-web tql-py-worker tql-py-worker-dashboard tql-ontology textableau oathkeeper valkey postgres minio tester deployer
 
-.PHONY: deployer push-deployer mirror-third-party annotate app-crd verify health
+.PHONY: deployer push-deployer minio push-minio mirror-third-party annotate app-crd verify health
+
+# MinIO server, compiled from the last public source with patched Go
+# modules (minio/Dockerfile). Re-run `make annotate` (or annotate minio
+# alone with gcrane) after pushing.
+minio:
+	docker build --platform $(PLATFORM) \
+	  -f minio/Dockerfile \
+	  -t $(REGISTRY)/minio:$(TAG) minio
+	docker tag $(REGISTRY)/minio:$(TAG) $(REGISTRY)/minio:$(TRACK)
+
+push-minio: minio
+	docker push $(REGISTRY)/minio:$(TAG)
+	docker push $(REGISTRY)/minio:$(TRACK)
 
 deployer:
 	docker build --platform $(PLATFORM) \

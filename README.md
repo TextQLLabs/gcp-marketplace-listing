@@ -39,7 +39,8 @@ track tag (`1.3`), plus the product service-name annotation.
 
 ```sh
 make app-crd              # once per cluster: the Application CRD
-make mirror-third-party   # valkey, kubectl, postgres, minio, tester
+make mirror-third-party   # valkey, postgres, tester
+make push-minio           # build MinIO from source and push it
 make push-deployer        # build and push the deployer
 make annotate             # stamp the service-name annotation on everything
 make verify               # Marketplace verification (install -> tests -> uninstall)
@@ -70,11 +71,12 @@ an upstream fix are reported as-is. The first-party Deployment containers
 pull with `imagePullPolicy: Always` so a re-pushed tag is never shadowed
 by a node's image cache.
 
-MinIO is in the image map like everything else: upstream stopped serving
-the pinned build on quay.io and Docker Hub in September 2026, so the copy
-in the product registry is the one Marketplace republishes. Its remaining
-findings are Go modules inside the upstream binaries and cannot be patched
-downstream; a newer public build does not exist.
+MinIO is in the image map like everything else, and it is built from
+source: MinIO publishes no container images any more and its repository is
+archived, so `minio/Dockerfile` compiles the last public commit with the Go
+modules the scanner flags bumped to their fixed versions, on a current Go
+toolchain, into a fresh `ubi9/ubi-micro` base. The `mc` client is left out
+(the chart never calls it). `make push-minio` builds and pushes it.
 
 Python package findings in the worker images are fixed the same way as OS
 packages: one `uv pip install` layer pinning the fixed version.
