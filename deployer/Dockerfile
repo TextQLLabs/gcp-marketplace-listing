@@ -7,6 +7,13 @@ FROM gcr.io/cloud-marketplace-tools/k8s/deployer_helm/onbuild@sha256:6a6d705987b
 
 ARG REGISTRY
 ARG TAG
+ARG BUILD_DATE
+ARG VCS_REF
+
+# Producer Portal only accepts a resubmission when the deployer digest
+# changes; the build stamp makes every `make deployer` a new image.
+LABEL org.opencontainers.image.created="$BUILD_DATE" \
+      org.opencontainers.image.revision="$VCS_REF"
 
 # GKE Autopilot needs time to provision nodes and pull multi-GB images.
 ENV WAIT_FOR_READY_TIMEOUT=1500 \

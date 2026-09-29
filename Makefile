@@ -45,6 +45,8 @@ deployer:
 	docker build --platform $(PLATFORM) \
 	  --build-arg REGISTRY=$(REGISTRY) \
 	  --build-arg TAG=$(TAG) \
+	  --build-arg BUILD_DATE=$(shell date -u +%Y-%m-%dT%H:%M:%SZ) \
+	  --build-arg VCS_REF=$(shell git rev-parse --short HEAD) \
 	  -f deployer/Dockerfile \
 	  -t $(REGISTRY)/deployer:$(TAG) .
 	docker tag $(REGISTRY)/deployer:$(TAG) $(REGISTRY)/deployer:$(TRACK)
