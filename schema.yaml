@@ -100,6 +100,10 @@ x-google-marketplace:
       properties:
         images.postgres:
           type: FULL
+    minio:
+      properties:
+        images.minio:
+          type: FULL
     tester:
       properties:
         images.tester:

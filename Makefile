@@ -16,8 +16,8 @@ NAMESPACE    ?= textql
 # Third-party images mirrored so a release is fully self-contained.
 # minio is not here: upstream stopped serving
 # RELEASE.2025-09-07T16-13-09Z.hotfix.7aa24e772 on quay.io and Docker Hub,
-# so $(REGISTRY)/minio (tags 1.3.21, 1.3) is the surviving copy; retag it
-# with gcrane for a new release instead of pulling.
+# so $(REGISTRY)/minio (tags 1.3.21, 1.3, in the schema image map) is the
+# surviving copy; retag it with gcrane for a new release instead of pulling.
 MIRROR_SPECS = \
 	valkey=docker.io/valkey/valkey:8.1-alpine \
 	postgres=docker.io/pgvector/pgvector:pg17 \

@@ -26,7 +26,7 @@ spec:
       containers:
         - name: postgres
           image: "{{ include "tql.image" (dict "ctx" . "key" "postgres" "name" "postgres") }}"
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           env:
             - name: POSTGRES_DB
               value: {{ .Values.postgres.auth.database | quote }}

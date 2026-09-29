@@ -116,6 +116,7 @@ postgresql://{{ include "tql.db.username" . }}:{{ include "tql.db.password" . | 
 {{- define "tql.waitForDb" -}}
 - name: wait-for-db
   image: "{{ include "tql.image" (dict "ctx" . "key" "postgres" "name" "postgres") }}"
+  imagePullPolicy: Always
   command:
     - sh
     - -c

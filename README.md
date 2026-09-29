@@ -70,8 +70,11 @@ an upstream fix are reported as-is. The first-party Deployment containers
 pull with `imagePullPolicy: Always` so a re-pushed tag is never shadowed
 by a node's image cache.
 
-MinIO is deliberately outside the image map (its findings are Go modules
-inside the upstream binaries and cannot be patched downstream). Upstream
-stopped serving the pinned build on quay.io and Docker Hub in September
-2026, so `images.minio` points at the copy kept in the product registry;
-that copy must be reachable by whichever cluster installs the chart.
+MinIO is in the image map like everything else: upstream stopped serving
+the pinned build on quay.io and Docker Hub in September 2026, so the copy
+in the product registry is the one Marketplace republishes. Its remaining
+findings are Go modules inside the upstream binaries and cannot be patched
+downstream; a newer public build does not exist.
+
+Python package findings in the worker images are fixed the same way as OS
+packages: one `uv pip install` layer pinning the fixed version.
